@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>piq.perceptual &#8212; PyOlimp 0.1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=1aa832ab" />
+    <script src="../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for piq.perceptual</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Implementation of Content loss, Style loss, LPIPS and DISTS metrics</span>
+<span class="sd">References:</span>
+<span class="sd">    .. [1] Gatys, Leon and Ecker, Alexander and Bethge, Matthias</span>
+<span class="sd">    (2016). A Neural Algorithm of Artistic Style}</span>
+<span class="sd">    Association for Research in Vision and Ophthalmology (ARVO)</span>
+<span class="sd">    https://arxiv.org/abs/1508.06576</span>
+<span class="sd">    .. [2] Zhang, Richard and Isola, Phillip and Efros, et al.</span>
+<span class="sd">    (2018) The Unreasonable Effectiveness of Deep Features as a Perceptual Metric</span>
+<span class="sd">    2018 IEEE/CVF Conference on Computer Vision and Pattern Recognition</span>
+<span class="sd">    https://arxiv.org/abs/1801.03924</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Collection</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">from</span> <span class="nn">torch.nn.modules.loss</span> <span class="kn">import</span> <span class="n">_Loss</span>
+<span class="kn">from</span> <span class="nn">torchvision.models</span> <span class="kn">import</span> <span class="n">vgg16</span><span class="p">,</span> <span class="n">vgg19</span>
+
+<span class="kn">from</span> <span class="nn">piq.utils</span> <span class="kn">import</span> <span class="n">_validate_input</span><span class="p">,</span> <span class="n">_reduce</span>
+<span class="kn">from</span> <span class="nn">piq.functional</span> <span class="kn">import</span> <span class="n">similarity_map</span><span class="p">,</span> <span class="n">L2Pool2d</span>
+
+
+<span class="c1"># Map VGG names to corresponding number in torchvision layer</span>
+<span class="n">VGG16_LAYERS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;conv1_1&quot;</span><span class="p">:</span> <span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="s2">&quot;relu1_1&quot;</span><span class="p">:</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv1_2&quot;</span><span class="p">:</span> <span class="s1">&#39;2&#39;</span><span class="p">,</span> <span class="s2">&quot;relu1_2&quot;</span><span class="p">:</span> <span class="s1">&#39;3&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;pool1&quot;</span><span class="p">:</span> <span class="s1">&#39;4&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv2_1&quot;</span><span class="p">:</span> <span class="s1">&#39;5&#39;</span><span class="p">,</span> <span class="s2">&quot;relu2_1&quot;</span><span class="p">:</span> <span class="s1">&#39;6&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv2_2&quot;</span><span class="p">:</span> <span class="s1">&#39;7&#39;</span><span class="p">,</span> <span class="s2">&quot;relu2_2&quot;</span><span class="p">:</span> <span class="s1">&#39;8&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;pool2&quot;</span><span class="p">:</span> <span class="s1">&#39;9&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv3_1&quot;</span><span class="p">:</span> <span class="s1">&#39;10&#39;</span><span class="p">,</span> <span class="s2">&quot;relu3_1&quot;</span><span class="p">:</span> <span class="s1">&#39;11&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv3_2&quot;</span><span class="p">:</span> <span class="s1">&#39;12&#39;</span><span class="p">,</span> <span class="s2">&quot;relu3_2&quot;</span><span class="p">:</span> <span class="s1">&#39;13&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv3_3&quot;</span><span class="p">:</span> <span class="s1">&#39;14&#39;</span><span class="p">,</span> <span class="s2">&quot;relu3_3&quot;</span><span class="p">:</span> <span class="s1">&#39;15&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;pool3&quot;</span><span class="p">:</span> <span class="s1">&#39;16&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv4_1&quot;</span><span class="p">:</span> <span class="s1">&#39;17&#39;</span><span class="p">,</span> <span class="s2">&quot;relu4_1&quot;</span><span class="p">:</span> <span class="s1">&#39;18&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv4_2&quot;</span><span class="p">:</span> <span class="s1">&#39;19&#39;</span><span class="p">,</span> <span class="s2">&quot;relu4_2&quot;</span><span class="p">:</span> <span class="s1">&#39;20&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv4_3&quot;</span><span class="p">:</span> <span class="s1">&#39;21&#39;</span><span class="p">,</span> <span class="s2">&quot;relu4_3&quot;</span><span class="p">:</span> <span class="s1">&#39;22&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;pool4&quot;</span><span class="p">:</span> <span class="s1">&#39;23&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv5_1&quot;</span><span class="p">:</span> <span class="s1">&#39;24&#39;</span><span class="p">,</span> <span class="s2">&quot;relu5_1&quot;</span><span class="p">:</span> <span class="s1">&#39;25&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv5_2&quot;</span><span class="p">:</span> <span class="s1">&#39;26&#39;</span><span class="p">,</span> <span class="s2">&quot;relu5_2&quot;</span><span class="p">:</span> <span class="s1">&#39;27&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv5_3&quot;</span><span class="p">:</span> <span class="s1">&#39;28&#39;</span><span class="p">,</span> <span class="s2">&quot;relu5_3&quot;</span><span class="p">:</span> <span class="s1">&#39;29&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;pool5&quot;</span><span class="p">:</span> <span class="s1">&#39;30&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">VGG19_LAYERS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;conv1_1&quot;</span><span class="p">:</span> <span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="s2">&quot;relu1_1&quot;</span><span class="p">:</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv1_2&quot;</span><span class="p">:</span> <span class="s1">&#39;2&#39;</span><span class="p">,</span> <span class="s2">&quot;relu1_2&quot;</span><span class="p">:</span> <span class="s1">&#39;3&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;pool1&quot;</span><span class="p">:</span> <span class="s1">&#39;4&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv2_1&quot;</span><span class="p">:</span> <span class="s1">&#39;5&#39;</span><span class="p">,</span> <span class="s2">&quot;relu2_1&quot;</span><span class="p">:</span> <span class="s1">&#39;6&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv2_2&quot;</span><span class="p">:</span> <span class="s1">&#39;7&#39;</span><span class="p">,</span> <span class="s2">&quot;relu2_2&quot;</span><span class="p">:</span> <span class="s1">&#39;8&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;pool2&quot;</span><span class="p">:</span> <span class="s1">&#39;9&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv3_1&quot;</span><span class="p">:</span> <span class="s1">&#39;10&#39;</span><span class="p">,</span> <span class="s2">&quot;relu3_1&quot;</span><span class="p">:</span> <span class="s1">&#39;11&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv3_2&quot;</span><span class="p">:</span> <span class="s1">&#39;12&#39;</span><span class="p">,</span> <span class="s2">&quot;relu3_2&quot;</span><span class="p">:</span> <span class="s1">&#39;13&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv3_3&quot;</span><span class="p">:</span> <span class="s1">&#39;14&#39;</span><span class="p">,</span> <span class="s2">&quot;relu3_3&quot;</span><span class="p">:</span> <span class="s1">&#39;15&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv3_4&quot;</span><span class="p">:</span> <span class="s1">&#39;16&#39;</span><span class="p">,</span> <span class="s2">&quot;relu3_4&quot;</span><span class="p">:</span> <span class="s1">&#39;17&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;pool3&quot;</span><span class="p">:</span> <span class="s1">&#39;18&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv4_1&quot;</span><span class="p">:</span> <span class="s1">&#39;19&#39;</span><span class="p">,</span> <span class="s2">&quot;relu4_1&quot;</span><span class="p">:</span> <span class="s1">&#39;20&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv4_2&quot;</span><span class="p">:</span> <span class="s1">&#39;21&#39;</span><span class="p">,</span> <span class="s2">&quot;relu4_2&quot;</span><span class="p">:</span> <span class="s1">&#39;22&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv4_3&quot;</span><span class="p">:</span> <span class="s1">&#39;23&#39;</span><span class="p">,</span> <span class="s2">&quot;relu4_3&quot;</span><span class="p">:</span> <span class="s1">&#39;24&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv4_4&quot;</span><span class="p">:</span> <span class="s1">&#39;25&#39;</span><span class="p">,</span> <span class="s2">&quot;relu4_4&quot;</span><span class="p">:</span> <span class="s1">&#39;26&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;pool4&quot;</span><span class="p">:</span> <span class="s1">&#39;27&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv5_1&quot;</span><span class="p">:</span> <span class="s1">&#39;28&#39;</span><span class="p">,</span> <span class="s2">&quot;relu5_1&quot;</span><span class="p">:</span> <span class="s1">&#39;29&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv5_2&quot;</span><span class="p">:</span> <span class="s1">&#39;30&#39;</span><span class="p">,</span> <span class="s2">&quot;relu5_2&quot;</span><span class="p">:</span> <span class="s1">&#39;31&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv5_3&quot;</span><span class="p">:</span> <span class="s1">&#39;32&#39;</span><span class="p">,</span> <span class="s2">&quot;relu5_3&quot;</span><span class="p">:</span> <span class="s1">&#39;33&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;conv5_4&quot;</span><span class="p">:</span> <span class="s1">&#39;34&#39;</span><span class="p">,</span> <span class="s2">&quot;relu5_4&quot;</span><span class="p">:</span> <span class="s1">&#39;35&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;pool5&quot;</span><span class="p">:</span> <span class="s1">&#39;36&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">IMAGENET_MEAN</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.485</span><span class="p">,</span> <span class="mf">0.456</span><span class="p">,</span> <span class="mf">0.406</span><span class="p">]</span>
+<span class="n">IMAGENET_STD</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.229</span><span class="p">,</span> <span class="mf">0.224</span><span class="p">,</span> <span class="mf">0.225</span><span class="p">]</span>
+
+<span class="c1"># Constant used in feature normalization to avoid zero division</span>
+<span class="n">EPS</span> <span class="o">=</span> <span class="mf">1e-10</span>
+
+
+<div class="viewcode-block" id="ContentLoss">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.ContentLoss">[docs]</a>
+<span class="k">class</span> <span class="nc">ContentLoss</span><span class="p">(</span><span class="n">_Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Creates Content loss that can be used for image style transfer or as a measure for image to image tasks.</span>
+<span class="sd">    Uses pretrained VGG models from torchvision.</span>
+<span class="sd">    Expects input to be in range [0, 1] or normalized with ImageNet statistics into range [-1, 1]</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        feature_extractor: Model to extract features or model name: ``&#39;vgg16&#39;`` | ``&#39;vgg19&#39;``.</span>
+<span class="sd">        layers: List of strings with layer names. Default: ``&#39;relu3_3&#39;``</span>
+<span class="sd">        weights: List of float weight to balance different layers</span>
+<span class="sd">        replace_pooling: Flag to replace MaxPooling layer with AveragePooling. See references for details.</span>
+<span class="sd">        distance: Method to compute distance between features: ``&#39;mse&#39;`` | ``&#39;mae&#39;``.</span>
+<span class="sd">        reduction: Specifies the reduction type:</span>
+<span class="sd">            ``&#39;none&#39;`` | ``&#39;mean&#39;`` | ``&#39;sum&#39;``. Default:``&#39;mean&#39;``</span>
+<span class="sd">        mean: List of float values used for data standardization. Default: ImageNet mean.</span>
+<span class="sd">            If there is no need to normalize data, use [0., 0., 0.].</span>
+<span class="sd">        std: List of float values used for data standardization. Default: ImageNet std.</span>
+<span class="sd">            If there is no need to normalize data, use [1., 1., 1.].</span>
+<span class="sd">        normalize_features: If true, unit-normalize each feature in channel dimension before scaling</span>
+<span class="sd">            and computing distance. See references for details.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; loss = ContentLoss()</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.rand(3, 3, 256, 256, requires_grad=True)</span>
+<span class="sd">        &gt;&gt;&gt; y = torch.rand(3, 3, 256, 256)</span>
+<span class="sd">        &gt;&gt;&gt; output = loss(x, y)</span>
+<span class="sd">        &gt;&gt;&gt; output.backward()</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        Gatys, Leon and Ecker, Alexander and Bethge, Matthias (2016).</span>
+<span class="sd">        A Neural Algorithm of Artistic Style</span>
+<span class="sd">        Association for Research in Vision and Ophthalmology (ARVO)</span>
+<span class="sd">        https://arxiv.org/abs/1508.06576</span>
+
+<span class="sd">        Zhang, Richard and Isola, Phillip and Efros, et al. (2018)</span>
+<span class="sd">        The Unreasonable Effectiveness of Deep Features as a Perceptual Metric</span>
+<span class="sd">        IEEE/CVF Conference on Computer Vision and Pattern Recognition</span>
+<span class="sd">        https://arxiv.org/abs/1801.03924</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_extractor</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;vgg16&quot;</span><span class="p">,</span> <span class="n">layers</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;relu3_3&quot;</span><span class="p">,),</span>
+                 <span class="n">weights</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="p">],</span> <span class="n">replace_pooling</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">distance</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="n">mean</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">IMAGENET_MEAN</span><span class="p">,</span>
+                 <span class="n">std</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">IMAGENET_STD</span><span class="p">,</span> <span class="n">normalize_features</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">allow_layers_weights_mismatch</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="k">assert</span> <span class="n">allow_layers_weights_mismatch</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">),</span> \
+            <span class="sa">f</span><span class="s1">&#39;Lengths of provided layers and weighs mismatch (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span><span class="si">}</span><span class="s1"> weights and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span><span class="si">}</span><span class="s1"> layers), &#39;</span> \
+            <span class="sa">f</span><span class="s1">&#39;which will cause incorrect results. Please provide weight for each layer.&#39;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">feature_extractor</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">feature_extractor</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">layers</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">feature_extractor</span> <span class="o">==</span> <span class="s2">&quot;vgg16&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">vgg16</span><span class="p">(</span><span class="n">pretrained</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">features</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">VGG16_LAYERS</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">feature_extractor</span> <span class="o">==</span> <span class="s2">&quot;vgg19&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">vgg19</span><span class="p">(</span><span class="n">pretrained</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">features</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">VGG19_LAYERS</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown feature extractor&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">replace_pooling</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">replace_pooling</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+
+        <span class="c1"># Disable gradients</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+            <span class="n">param</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">distance</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;mse&quot;</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">,</span>
+            <span class="s2">&quot;mae&quot;</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">L1Loss</span><span class="p">,</span>
+        <span class="p">}[</span><span class="n">distance</span><span class="p">](</span><span class="n">reduction</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">w</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">weights</span><span class="p">]</span>
+
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mean</span><span class="p">)</span>
+        <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mean</span> <span class="o">=</span> <span class="n">mean</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">std</span> <span class="o">=</span> <span class="n">std</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize_features</span> <span class="o">=</span> <span class="n">normalize_features</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reduction</span> <span class="o">=</span> <span class="n">reduction</span>
+
+<div class="viewcode-block" id="ContentLoss.forward">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.ContentLoss.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computation of Content loss between feature representations of prediction :math:`x` and</span>
+<span class="sd">        target :math:`y` tensors.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x: An input tensor. Shape :math:`(N, C, H, W)`.</span>
+<span class="sd">            y: A target tensor. Shape :math:`(N, C, H, W)`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Content loss between feature representations</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_validate_input</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">],</span> <span class="n">dim_range</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">data_range</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_features</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">y_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_features</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+        <span class="n">distances</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_distance</span><span class="p">(</span><span class="n">x_features</span><span class="p">,</span> <span class="n">y_features</span><span class="p">)</span>
+
+        <span class="c1"># Scale distances, then average in spatial dimensions, then stack and sum in channels dimension</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([(</span><span class="n">d</span> <span class="o">*</span> <span class="n">w</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">d</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span> <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_reduce</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ContentLoss.compute_distance">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.ContentLoss.compute_distance">[docs]</a>
+    <span class="k">def</span> <span class="nf">compute_distance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_features</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">y_features</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Take L2 or L1 distance between feature maps depending on ``distance``.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x_features: Features of the input tensor.</span>
+<span class="sd">            y_features: Features of the target tensor.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Distance between feature maps</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">distance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_features</span><span class="p">,</span> <span class="n">y_features</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="ContentLoss.get_features">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.ContentLoss.get_features">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            x: Tensor. Shape :math:`(N, C, H, W)`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of features extracted from intermediate layers</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Normalize input</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">std</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">features</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_modules</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_features</span> <span class="k">else</span> <span class="n">x</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">features</span></div>
+
+
+<div class="viewcode-block" id="ContentLoss.normalize">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.ContentLoss.normalize">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">normalize</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Normalize feature maps in channel direction to unit length.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x: Tensor. Shape :math:`(N, C, H, W)`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Normalized input</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">norm_factor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="n">norm_factor</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ContentLoss.replace_pooling">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.ContentLoss.replace_pooling">[docs]</a>
+    <span class="k">def</span> <span class="nf">replace_pooling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Turn All MaxPool layers into AveragePool</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            module: Module to change MaxPool int AveragePool</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Module with AveragePool instead MaxPool</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">module_output</span> <span class="o">=</span> <span class="n">module</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">):</span>
+            <span class="n">module_output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">AvgPool2d</span><span class="p">(</span><span class="n">kernel_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">named_children</span><span class="p">():</span>
+            <span class="n">module_output</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">replace_pooling</span><span class="p">(</span><span class="n">child</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">module_output</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="StyleLoss">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.StyleLoss">[docs]</a>
+<span class="k">class</span> <span class="nc">StyleLoss</span><span class="p">(</span><span class="n">ContentLoss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Creates Style loss that can be used for image style transfer or as a measure in</span>
+<span class="sd">    image to image tasks. Computes distance between Gram matrices of feature maps.</span>
+<span class="sd">    Uses pretrained VGG models from torchvision.</span>
+
+<span class="sd">    By default expects input to be in range [0, 1], which is then normalized by ImageNet statistics into range [-1, 1].</span>
+<span class="sd">    If no normalisation is required, change `mean` and `std` values accordingly.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        feature_extractor: Model to extract features or model name: ``&#39;vgg16&#39;`` | ``&#39;vgg19&#39;``.</span>
+<span class="sd">        layers: List of strings with layer names. Default: ``&#39;relu3_3&#39;``</span>
+<span class="sd">        weights: List of float weight to balance different layers</span>
+<span class="sd">        replace_pooling: Flag to replace MaxPooling layer with AveragePooling. See references for details.</span>
+<span class="sd">        distance: Method to compute distance between features: ``&#39;mse&#39;`` | ``&#39;mae&#39;``.</span>
+<span class="sd">        reduction: Specifies the reduction type:</span>
+<span class="sd">            ``&#39;none&#39;`` | ``&#39;mean&#39;`` | ``&#39;sum&#39;``. Default:``&#39;mean&#39;``</span>
+<span class="sd">        mean: List of float values used for data standardization. Default: ImageNet mean.</span>
+<span class="sd">            If there is no need to normalize data, use [0., 0., 0.].</span>
+<span class="sd">        std: List of float values used for data standardization. Default: ImageNet std.</span>
+<span class="sd">            If there is no need to normalize data, use [1., 1., 1.].</span>
+<span class="sd">        normalize_features: If true, unit-normalize each feature in channel dimension before scaling</span>
+<span class="sd">            and computing distance. See references for details.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; loss = StyleLoss()</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.rand(3, 3, 256, 256, requires_grad=True)</span>
+<span class="sd">        &gt;&gt;&gt; y = torch.rand(3, 3, 256, 256)</span>
+<span class="sd">        &gt;&gt;&gt; output = loss(x, y)</span>
+<span class="sd">        &gt;&gt;&gt; output.backward()</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        Gatys, Leon and Ecker, Alexander and Bethge, Matthias (2016).</span>
+<span class="sd">        A Neural Algorithm of Artistic Style</span>
+<span class="sd">        Association for Research in Vision and Ophthalmology (ARVO)</span>
+<span class="sd">        https://arxiv.org/abs/1508.06576</span>
+
+<span class="sd">        Zhang, Richard and Isola, Phillip and Efros, et al. (2018)</span>
+<span class="sd">        The Unreasonable Effectiveness of Deep Features as a Perceptual Metric</span>
+<span class="sd">        IEEE/CVF Conference on Computer Vision and Pattern Recognition</span>
+<span class="sd">        https://arxiv.org/abs/1801.03924</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="StyleLoss.compute_distance">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.StyleLoss.compute_distance">[docs]</a>
+    <span class="k">def</span> <span class="nf">compute_distance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_features</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_features</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Take L2 or L1 distance between Gram matrices of feature maps depending on ``distance``.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x_features: Features of the input tensor.</span>
+<span class="sd">            y_features: Features of the target tensor.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Distance between Gram matrices</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_gram</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">gram_matrix</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">x_features</span><span class="p">]</span>
+        <span class="n">y_gram</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">gram_matrix</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">y_features</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">distance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_gram</span><span class="p">,</span> <span class="n">y_gram</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="StyleLoss.gram_matrix">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.StyleLoss.gram_matrix">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">gram_matrix</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute Gram matrix for batch of features.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x: Tensor. Shape :math:`(N, C, H, W)`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Gram matrix for given input</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+        <span class="n">gram</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">B</span><span class="p">):</span>
+            <span class="n">features</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">H</span> <span class="o">*</span> <span class="n">W</span><span class="p">)</span>
+
+            <span class="c1"># Add fake channel dimension</span>
+            <span class="n">gram</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">mm</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">features</span><span class="o">.</span><span class="n">t</span><span class="p">())</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">gram</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="LPIPS">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.LPIPS">[docs]</a>
+<span class="k">class</span> <span class="nc">LPIPS</span><span class="p">(</span><span class="n">ContentLoss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Learned Perceptual Image Patch Similarity metric. Only VGG16 learned weights are supported.</span>
+
+<span class="sd">    By default expects input to be in range [0, 1], which is then normalized by ImageNet statistics into range [-1, 1].</span>
+<span class="sd">    If no normalisation is required, change `mean` and `std` values accordingly.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        replace_pooling: Flag to replace MaxPooling layer with AveragePooling. See references for details.</span>
+<span class="sd">        distance: Method to compute distance between features: ``&#39;mse&#39;`` | ``&#39;mae&#39;``.</span>
+<span class="sd">        reduction: Specifies the reduction type:</span>
+<span class="sd">            ``&#39;none&#39;`` | ``&#39;mean&#39;`` | ``&#39;sum&#39;``. Default:``&#39;mean&#39;``</span>
+<span class="sd">        mean: List of float values used for data standardization. Default: ImageNet mean.</span>
+<span class="sd">            If there is no need to normalize data, use [0., 0., 0.].</span>
+<span class="sd">        std: List of float values used for data standardization. Default: ImageNet std.</span>
+<span class="sd">            If there is no need to normalize data, use [1., 1., 1.].</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; loss = LPIPS()</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.rand(3, 3, 256, 256, requires_grad=True)</span>
+<span class="sd">        &gt;&gt;&gt; y = torch.rand(3, 3, 256, 256)</span>
+<span class="sd">        &gt;&gt;&gt; output = loss(x, y)</span>
+<span class="sd">        &gt;&gt;&gt; output.backward()</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        Gatys, Leon and Ecker, Alexander and Bethge, Matthias (2016).</span>
+<span class="sd">        A Neural Algorithm of Artistic Style</span>
+<span class="sd">        Association for Research in Vision and Ophthalmology (ARVO)</span>
+<span class="sd">        https://arxiv.org/abs/1508.06576</span>
+
+<span class="sd">        Zhang, Richard and Isola, Phillip and Efros, et al. (2018)</span>
+<span class="sd">        The Unreasonable Effectiveness of Deep Features as a Perceptual Metric</span>
+<span class="sd">        IEEE/CVF Conference on Computer Vision and Pattern Recognition</span>
+<span class="sd">        https://arxiv.org/abs/1801.03924</span>
+<span class="sd">        https://github.com/richzhang/PerceptualSimilarity</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_weights_url</span> <span class="o">=</span> <span class="s2">&quot;https://github.com/photosynthesis-team/&quot;</span> <span class="o">+</span> \
+        <span class="s2">&quot;photosynthesis.metrics/releases/download/v0.4.0/lpips_weights.pt&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">replace_pooling</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">distance</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mse&quot;</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
+                 <span class="n">mean</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">IMAGENET_MEAN</span><span class="p">,</span> <span class="n">std</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">IMAGENET_STD</span><span class="p">,)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">lpips_layers</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;relu1_2&#39;</span><span class="p">,</span> <span class="s1">&#39;relu2_2&#39;</span><span class="p">,</span> <span class="s1">&#39;relu3_3&#39;</span><span class="p">,</span> <span class="s1">&#39;relu4_3&#39;</span><span class="p">,</span> <span class="s1">&#39;relu5_3&#39;</span><span class="p">]</span>
+        <span class="n">lpips_weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load_state_dict_from_url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_weights_url</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;vgg16&quot;</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="n">lpips_layers</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">lpips_weights</span><span class="p">,</span>
+                         <span class="n">replace_pooling</span><span class="o">=</span><span class="n">replace_pooling</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
+                         <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">std</span><span class="p">,</span>
+                         <span class="n">normalize_features</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="DISTS">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.DISTS">[docs]</a>
+<span class="k">class</span> <span class="nc">DISTS</span><span class="p">(</span><span class="n">ContentLoss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Deep Image Structure and Texture Similarity metric.</span>
+
+<span class="sd">    By default expects input to be in range [0, 1], which is then normalized by ImageNet statistics into range [-1, 1].</span>
+<span class="sd">    If no normalisation is required, change `mean` and `std` values accordingly.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        reduction: Specifies the reduction type:</span>
+<span class="sd">            ``&#39;none&#39;`` | ``&#39;mean&#39;`` | ``&#39;sum&#39;``. Default:``&#39;mean&#39;``</span>
+<span class="sd">        mean: List of float values used for data standardization. Default: ImageNet mean.</span>
+<span class="sd">            If there is no need to normalize data, use [0., 0., 0.].</span>
+<span class="sd">        std: List of float values used for data standardization. Default: ImageNet std.</span>
+<span class="sd">            If there is no need to normalize data, use [1., 1., 1.].</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; loss = DISTS()</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.rand(3, 3, 256, 256, requires_grad=True)</span>
+<span class="sd">        &gt;&gt;&gt; y = torch.rand(3, 3, 256, 256)</span>
+<span class="sd">        &gt;&gt;&gt; output = loss(x, y)</span>
+<span class="sd">        &gt;&gt;&gt; output.backward()</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        Keyan Ding, Kede Ma, Shiqi Wang, Eero P. Simoncelli (2020).</span>
+<span class="sd">        Image Quality Assessment: Unifying Structure and Texture Similarity.</span>
+<span class="sd">        https://arxiv.org/abs/2004.07728</span>
+<span class="sd">        https://github.com/dingkeyan93/DISTS</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_weights_url</span> <span class="o">=</span> <span class="s2">&quot;https://github.com/photosynthesis-team/piq/releases/download/v0.4.1/dists_weights.pt&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="n">mean</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">IMAGENET_MEAN</span><span class="p">,</span>
+                 <span class="n">std</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">IMAGENET_STD</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dists_layers</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;relu1_2&#39;</span><span class="p">,</span> <span class="s1">&#39;relu2_2&#39;</span><span class="p">,</span> <span class="s1">&#39;relu3_3&#39;</span><span class="p">,</span> <span class="s1">&#39;relu4_3&#39;</span><span class="p">,</span> <span class="s1">&#39;relu5_3&#39;</span><span class="p">]</span>
+        <span class="n">channels</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">512</span><span class="p">]</span>
+
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load_state_dict_from_url</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_weights_url</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">dists_weights</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">],</span> <span class="n">channels</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">dists_weights</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="s1">&#39;beta&#39;</span><span class="p">],</span> <span class="n">channels</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;vgg16&quot;</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="n">dists_layers</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">dists_weights</span><span class="p">,</span>
+                         <span class="n">replace_pooling</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">std</span><span class="p">,</span>
+                         <span class="n">normalize_features</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">allow_layers_weights_mismatch</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DISTS.forward">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.DISTS.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x: An input tensor. Shape :math:`(N, C, H, W)`.</span>
+<span class="sd">            y: A target tensor. Shape :math:`(N, C, H, W)`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Deep Image Structure and Texture Similarity loss, i.e. ``1-DISTS`` in range [0, 1].</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">256</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="mi">256</span> <span class="o">/</span> <span class="nb">min</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">),</span> <span class="n">recompute_scale_factor</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;bilinear&#39;</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+                <span class="n">y</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="mi">256</span> <span class="o">/</span> <span class="nb">min</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">),</span> <span class="n">recompute_scale_factor</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;bilinear&#39;</span><span class="p">)</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">loss</span></div>
+
+
+<div class="viewcode-block" id="DISTS.compute_distance">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.DISTS.compute_distance">[docs]</a>
+    <span class="k">def</span> <span class="nf">compute_distance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_features</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_features</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute structure similarity between feature maps</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x_features: Features of the input tensor.</span>
+<span class="sd">            y_features: Features of the target tensor.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Structural similarity distance between feature maps</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">structure_distance</span><span class="p">,</span> <span class="n">texture_distance</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="c1"># Small constant for numerical stability</span>
+        <span class="n">EPS</span> <span class="o">=</span> <span class="mf">1e-6</span>
+
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_features</span><span class="p">,</span> <span class="n">y_features</span><span class="p">):</span>
+            <span class="n">x_mean</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">y_mean</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">structure_distance</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">similarity_map</span><span class="p">(</span><span class="n">x_mean</span><span class="p">,</span> <span class="n">y_mean</span><span class="p">,</span> <span class="n">constant</span><span class="o">=</span><span class="n">EPS</span><span class="p">))</span>
+
+            <span class="n">x_var</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_mean</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">y_var</span> <span class="o">=</span> <span class="p">((</span><span class="n">y</span> <span class="o">-</span> <span class="n">y_mean</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">xy_cov</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-</span> <span class="n">x_mean</span> <span class="o">*</span> <span class="n">y_mean</span>
+            <span class="n">texture_distance</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="mi">2</span> <span class="o">*</span> <span class="n">xy_cov</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">x_var</span> <span class="o">+</span> <span class="n">y_var</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">structure_distance</span> <span class="o">+</span> <span class="n">texture_distance</span></div>
+
+
+<div class="viewcode-block" id="DISTS.get_features">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.DISTS.get_features">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x: Input tensor</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of features extracted from input tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_features</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># Add input tensor as an additional feature</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">features</span></div>
+
+
+<div class="viewcode-block" id="DISTS.replace_pooling">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.DISTS.replace_pooling">[docs]</a>
+    <span class="k">def</span> <span class="nf">replace_pooling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Turn All MaxPool layers into L2Pool</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            module: Module to change MaxPool into L2Pool</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Module with L2Pool instead of MaxPool</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">module_output</span> <span class="o">=</span> <span class="n">module</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">):</span>
+            <span class="n">module_output</span> <span class="o">=</span> <span class="n">L2Pool2d</span><span class="p">(</span><span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">named_children</span><span class="p">():</span>
+            <span class="n">module_output</span><span class="o">.</span><span class="n">add_module</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">replace_pooling</span><span class="p">(</span><span class="n">child</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">module_output</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">PyOlimp</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/processing.html">olimp.processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html">olimp.evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.chromaticity_difference">olimp.evaluation.loss.chromaticity_difference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.color_blindness_loss">olimp.evaluation.loss.color_blindness_loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.corr">olimp.evaluation.loss.corr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.flip">olimp.evaluation.loss.flip</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.lcn">olimp.evaluation.loss.lcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.mse">olimp.evaluation.loss.mse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.nrmse">olimp.evaluation.loss.nrmse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.piq">olimp.evaluation.loss.piq</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.psnr">olimp.evaluation.loss.psnr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.rms">olimp.evaluation.loss.rms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.s_oklab">olimp.evaluation.loss.s_oklab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.ssim">olimp.evaluation.loss.ssim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.stress">olimp.evaluation.loss.stress</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.vsi">olimp.evaluation.loss.vsi</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/simulate.html">olimp.simulate.color_blindness_distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/simulate.html#module-olimp.simulate.refraction_distortion">olimp.simulate.refraction_distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/basic.html">olimp.precompensation.basic.huang</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/analytics.html">olimp.precompensation.analytics.feng_xu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html">olimp.precompensation.optimization.bregman_jumbo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html#module-olimp.precompensation.optimization.global_tone_mapping">olimp.precompensation.optimization.global_tone_mapping</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html#module-olimp.precompensation.optimization.montalto">olimp.precompensation.optimization.montalto</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html#module-olimp.precompensation.optimization.tennenholtz_zachevsky">olimp.precompensation.optimization.tennenholtz_zachevsky</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/vae.html">olimp.precompensation.nn.models.vae</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/unetvae.html">olimp.precompensation.nn.models.unetvae</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/cvae.html">olimp.precompensation.nn.models.cvae</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/cvd_swin.html">olimp.precompensation.nn.models.cvd_swin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/dwdn.html">olimp.precompensation.nn.models.dwdn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/vdsr.html">olimp.precompensation.nn.models.vdsr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/unet_efficient_b0.html">olimp.precompensation.nn.models.unet_efficient_b0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/usrnet.html">olimp.precompensation.nn.models.usrnet</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, PyOlimp authors.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

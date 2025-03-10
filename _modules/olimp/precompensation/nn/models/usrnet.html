@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>olimp.precompensation.nn.models.usrnet &#8212; PyOlimp 0.1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../../../_static/alabaster.css?v=12dfc556" />
+    <script src="../../../../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../../../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for olimp.precompensation.nn.models.usrnet</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">TypeAlias</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">.model</span> <span class="kn">import</span> <span class="n">USRNet</span>
+<span class="kn">from</span> <span class="nn">..download_path</span> <span class="kn">import</span> <span class="n">download_path</span><span class="p">,</span> <span class="n">PyOlimpHF</span>
+
+<span class="n">Input</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="PrecompensationUSRNet">
+<a class="viewcode-back" href="../../../../../olimp/precompensation/nn/models/usrnet.html#olimp.precompensation.nn.models.usrnet.PrecompensationUSRNet">[docs]</a>
+<span class="k">class</span> <span class="nc">PrecompensationUSRNet</span><span class="p">(</span><span class="n">USRNet</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">n_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="n">h_nc</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
+        <span class="n">in_nc</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">out_nc</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">nc</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">512</span><span class="p">],</span>
+        <span class="n">nb</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">act_mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span>
+            <span class="s2">&quot;C&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;T&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;B&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;I&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;R&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;r&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;L&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;l&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;2&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;3&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;4&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;U&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;u&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;M&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;A&quot;</span><span class="p">,</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;R&quot;</span><span class="p">,</span>  <span class="c1"># activation function, see `.basicblock.conv`</span>
+        <span class="n">downsample_mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span>
+            <span class="s2">&quot;avgpool&quot;</span><span class="p">,</span> <span class="s2">&quot;maxpool&quot;</span><span class="p">,</span> <span class="s2">&quot;strideconv&quot;</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;strideconv&quot;</span><span class="p">,</span>
+        <span class="n">upsample_mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span>
+            <span class="s2">&quot;upconv&quot;</span><span class="p">,</span> <span class="s2">&quot;pixelshuffle&quot;</span><span class="p">,</span> <span class="s2">&quot;convtranspose&quot;</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;convtranspose&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">n_iter</span><span class="o">=</span><span class="n">n_iter</span><span class="p">,</span>
+            <span class="n">h_nc</span><span class="o">=</span><span class="n">h_nc</span><span class="p">,</span>
+            <span class="n">in_nc</span><span class="o">=</span><span class="n">in_nc</span><span class="p">,</span>
+            <span class="n">out_nc</span><span class="o">=</span><span class="n">out_nc</span><span class="p">,</span>
+            <span class="n">nc</span><span class="o">=</span><span class="n">nc</span><span class="p">,</span>
+            <span class="n">nb</span><span class="o">=</span><span class="n">nb</span><span class="p">,</span>
+            <span class="n">act_mode</span><span class="o">=</span><span class="n">act_mode</span><span class="p">,</span>
+            <span class="n">downsample_mode</span><span class="o">=</span><span class="n">downsample_mode</span><span class="p">,</span>
+            <span class="n">upsample_mode</span><span class="o">=</span><span class="n">upsample_mode</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Add a Sigmoid layer to constrain the output between 0 and 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigmoid</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">()</span>
+
+<div class="viewcode-block" id="PrecompensationUSRNet.forward">
+<a class="viewcode-back" href="../../../../../olimp/precompensation/nn/models/usrnet.html#olimp.precompensation.nn.models.usrnet.PrecompensationUSRNet.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Input</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">x</span><span class="p">),)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">preprocess</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">image</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">psf</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">scale_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">noise_level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Input</span><span class="p">:</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">noise_level</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span><span class="o">.</span><span class="n">repeat</span><span class="p">([</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">psf</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">psf</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">image</span><span class="p">,</span> <span class="n">psf</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="n">sigma</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_path</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">PyOlimpHF</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">download_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">state_dict</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_device</span><span class="p">(),</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">new_state_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">new_key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;module.&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">new_state_dict</span><span class="p">[</span><span class="n">new_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">new_state_dict</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model</span>
+
+    <span class="k">def</span> <span class="nf">arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{}</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../../index.html">PyOlimp</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/processing.html">olimp.processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html">olimp.evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.chromaticity_difference">olimp.evaluation.loss.chromaticity_difference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.color_blindness_loss">olimp.evaluation.loss.color_blindness_loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.corr">olimp.evaluation.loss.corr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.flip">olimp.evaluation.loss.flip</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.lcn">olimp.evaluation.loss.lcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.mse">olimp.evaluation.loss.mse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.nrmse">olimp.evaluation.loss.nrmse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.piq">olimp.evaluation.loss.piq</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.psnr">olimp.evaluation.loss.psnr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.rms">olimp.evaluation.loss.rms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.s_oklab">olimp.evaluation.loss.s_oklab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.ssim">olimp.evaluation.loss.ssim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.stress">olimp.evaluation.loss.stress</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.vsi">olimp.evaluation.loss.vsi</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, PyOlimp authors.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

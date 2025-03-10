@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>olimp.precompensation.nn.models.cvd_swin &#8212; PyOlimp 0.1.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/alabaster.css?v=63888957" />
+    <script src="../../../../_static/documentation_options.js?v=a58bc63e"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="olimp.precompensation.nn.models.dwdn" href="dwdn.html" />
+    <link rel="prev" title="olimp.precompensation.nn.models.cvae" href="cvae.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-olimp.precompensation.nn.models.cvd_swin">
+<span id="olimp-precompensation-nn-models-cvd-swin"></span><h1>olimp.precompensation.nn.models.cvd_swin<a class="headerlink" href="#module-olimp.precompensation.nn.models.cvd_swin" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.BasicLayer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">BasicLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_resolution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mlp_ratio=4.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qkv_bias=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qk_scale=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attn_drop=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_path=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">downsample=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_checkpoint=False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#BasicLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.BasicLayer" title="Link to this definition">¶</a></dt>
+<dd><p>A basic Swin Transformer layer for one stage.
+:param dim: Number of input channels.
+:type dim: int
+:param input_resolution: Input resolution.
+:type input_resolution: tuple[int]
+:param depth: Number of blocks.
+:type depth: int
+:param num_heads: Number of attention heads.
+:type num_heads: int
+:param window_size: Local window size.
+:type window_size: int
+:param mlp_ratio: Ratio of mlp hidden dim to embedding dim.
+:type mlp_ratio: float
+:param qkv_bias: If True, add a learnable bias to query, key, value. Default: True
+:type qkv_bias: bool, optional
+:param qk_scale: Override default qk scale of head_dim ** -0.5 if set.
+:type qk_scale: float | None, optional
+:param drop: Dropout rate. Default: 0.0
+:type drop: float, optional
+:param attn_drop: Attention dropout rate. Default: 0.0
+:type attn_drop: float, optional
+:param drop_path: Stochastic depth rate. Default: 0.0
+:type drop_path: float | tuple[float], optional
+:param norm_layer: Normalization layer. Default: nn.LayerNorm
+:type norm_layer: nn.Module, optional
+:param downsample: Downsample layer at the end of the layer. Default: None
+:type downsample: nn.Module | None, optional
+:param use_checkpoint: Whether to use checkpointing to save memory. Default: False.
+:type use_checkpoint: bool</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.BasicLayer.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#BasicLayer.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.BasicLayer.extra_repr" title="Link to this definition">¶</a></dt>
+<dd><p>Return the extra representation of the module.</p>
+<p>To print customized extra information, you should re-implement
+this method in your own modules. Both single-line and multi-line
+strings are acceptable.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.Discriminator_transformer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">Discriminator_transformer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">img_size=256,</span> <span class="pre">patch_size=4,</span> <span class="pre">in_chans=6,</span> <span class="pre">num_classes=1,</span> <span class="pre">embed_dim=192,</span> <span class="pre">depths=[2,</span> <span class="pre">2,</span> <span class="pre">6,</span> <span class="pre">2],</span> <span class="pre">num_heads=[3,</span> <span class="pre">6,</span> <span class="pre">12,</span> <span class="pre">24],</span> <span class="pre">window_size=8,</span> <span class="pre">mlp_ratio=4.0,</span> <span class="pre">qkv_bias=True,</span> <span class="pre">qk_scale=None,</span> <span class="pre">drop_rate=0.0,</span> <span class="pre">attn_drop_rate=0.0,</span> <span class="pre">drop_path_rate=0.1,</span> <span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;,</span> <span class="pre">ape=False,</span> <span class="pre">patch_norm=True,</span> <span class="pre">use_checkpoint=False,</span> <span class="pre">**kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#Discriminator_transformer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.Discriminator_transformer" title="Link to this definition">¶</a></dt>
+<dd><p>Swin Transformer
+:param img_size: Input image size. Default 224
+:type img_size: int | tuple(int)
+:param patch_size: Patch size. Default: 4
+:type patch_size: int | tuple(int)
+:param in_chans: Number of input image channels. Default: 3
+:type in_chans: int
+:param num_classes: Number of classes for classification head. Default: 1000
+:type num_classes: int
+:param embed_dim: Patch embedding dimension. Default: 96
+:type embed_dim: int
+:param depths: Depth of each Swin Transformer layer.
+:type depths: tuple(int)
+:param num_heads: Number of attention heads in different layers.
+:type num_heads: tuple(int)
+:param window_size: Window size. Default: 7
+:type window_size: int
+:param mlp_ratio: Ratio of mlp hidden dim to embedding dim. Default: 4
+:type mlp_ratio: float
+:param qkv_bias: If True, add a learnable bias to query, key, value. Default: True
+:type qkv_bias: bool
+:param qk_scale: Override default qk scale of head_dim ** -0.5 if set. Default: None
+:type qk_scale: float
+:param drop_rate: Dropout rate. Default: 0
+:type drop_rate: float
+:param attn_drop_rate: Attention dropout rate. Default: 0
+:type attn_drop_rate: float
+:param drop_path_rate: Stochastic depth rate. Default: 0.1
+:type drop_path_rate: float
+:param norm_layer: Normalization layer. Default: nn.LayerNorm.
+:type norm_layer: nn.Module
+:param ape: If True, add absolute position embedding to the patch embedding. Default: False
+:type ape: bool
+:param patch_norm: If True, add normalization after patch embedding. Default: True
+:type patch_norm: bool
+:param use_checkpoint: Whether to use checkpointing to save memory. Default: False
+:type use_checkpoint: bool</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.Discriminator_transformer2">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">Discriminator_transformer2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">img_size=256,</span> <span class="pre">patch_size=4,</span> <span class="pre">in_chans=6,</span> <span class="pre">num_classes=1,</span> <span class="pre">embed_dim=192,</span> <span class="pre">depths=[2,</span> <span class="pre">2,</span> <span class="pre">6,</span> <span class="pre">2],</span> <span class="pre">num_heads=[3,</span> <span class="pre">6,</span> <span class="pre">12,</span> <span class="pre">24],</span> <span class="pre">window_size=8,</span> <span class="pre">mlp_ratio=4.0,</span> <span class="pre">qkv_bias=True,</span> <span class="pre">qk_scale=None,</span> <span class="pre">drop_rate=0.0,</span> <span class="pre">attn_drop_rate=0.0,</span> <span class="pre">drop_path_rate=0.1,</span> <span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;,</span> <span class="pre">ape=True,</span> <span class="pre">patch_norm=True,</span> <span class="pre">use_checkpoint=False,</span> <span class="pre">**kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#Discriminator_transformer2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.Discriminator_transformer2" title="Link to this definition">¶</a></dt>
+<dd><p>Swin Transformer
+:param img_size: Input image size. Default 224
+:type img_size: int | tuple(int)
+:param patch_size: Patch size. Default: 4
+:type patch_size: int | tuple(int)
+:param in_chans: Number of input image channels. Default: 3
+:type in_chans: int
+:param num_classes: Number of classes for classification head. Default: 1000
+:type num_classes: int
+:param embed_dim: Patch embedding dimension. Default: 96
+:type embed_dim: int
+:param depths: Depth of each Swin Transformer layer.
+:type depths: tuple(int)
+:param num_heads: Number of attention heads in different layers.
+:type num_heads: tuple(int)
+:param window_size: Window size. Default: 7
+:type window_size: int
+:param mlp_ratio: Ratio of mlp hidden dim to embedding dim. Default: 4
+:type mlp_ratio: float
+:param qkv_bias: If True, add a learnable bias to query, key, value. Default: True
+:type qkv_bias: bool
+:param qk_scale: Override default qk scale of head_dim ** -0.5 if set. Default: None
+:type qk_scale: float
+:param drop_rate: Dropout rate. Default: 0
+:type drop_rate: float
+:param attn_drop_rate: Attention dropout rate. Default: 0
+:type attn_drop_rate: float
+:param drop_path_rate: Stochastic depth rate. Default: 0.1
+:type drop_path_rate: float
+:param norm_layer: Normalization layer. Default: nn.LayerNorm.
+:type norm_layer: nn.Module
+:param ape: If True, add absolute position embedding to the patch embedding. Default: False
+:type ape: bool
+:param patch_norm: If True, add normalization after patch embedding. Default: True
+:type patch_norm: bool
+:param use_checkpoint: Whether to use checkpointing to save memory. Default: False
+:type use_checkpoint: bool</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.Discriminator_transformer3">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">Discriminator_transformer3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">img_size=256,</span> <span class="pre">patch_size=4,</span> <span class="pre">in_chans=6,</span> <span class="pre">num_classes=1,</span> <span class="pre">embed_dim=192,</span> <span class="pre">depths=[2,</span> <span class="pre">2,</span> <span class="pre">6,</span> <span class="pre">2],</span> <span class="pre">num_heads=[3,</span> <span class="pre">6,</span> <span class="pre">12,</span> <span class="pre">24],</span> <span class="pre">window_size=8,</span> <span class="pre">mlp_ratio=4.0,</span> <span class="pre">qkv_bias=True,</span> <span class="pre">qk_scale=None,</span> <span class="pre">drop_rate=0.0,</span> <span class="pre">attn_drop_rate=0.0,</span> <span class="pre">drop_path_rate=0.1,</span> <span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;,</span> <span class="pre">ape=True,</span> <span class="pre">patch_norm=True,</span> <span class="pre">use_checkpoint=False,</span> <span class="pre">**kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#Discriminator_transformer3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.Discriminator_transformer3" title="Link to this definition">¶</a></dt>
+<dd><p>Swin Transformer
+:param img_size: Input image size. Default 224
+:type img_size: int | tuple(int)
+:param patch_size: Patch size. Default: 4
+:type patch_size: int | tuple(int)
+:param in_chans: Number of input image channels. Default: 3
+:type in_chans: int
+:param num_classes: Number of classes for classification head. Default: 1000
+:type num_classes: int
+:param embed_dim: Patch embedding dimension. Default: 96
+:type embed_dim: int
+:param depths: Depth of each Swin Transformer layer.
+:type depths: tuple(int)
+:param num_heads: Number of attention heads in different layers.
+:type num_heads: tuple(int)
+:param window_size: Window size. Default: 7
+:type window_size: int
+:param mlp_ratio: Ratio of mlp hidden dim to embedding dim. Default: 4
+:type mlp_ratio: float
+:param qkv_bias: If True, add a learnable bias to query, key, value. Default: True
+:type qkv_bias: bool
+:param qk_scale: Override default qk scale of head_dim ** -0.5 if set. Default: None
+:type qk_scale: float
+:param drop_rate: Dropout rate. Default: 0
+:type drop_rate: float
+:param attn_drop_rate: Attention dropout rate. Default: 0
+:type attn_drop_rate: float
+:param drop_path_rate: Stochastic depth rate. Default: 0.1
+:type drop_path_rate: float
+:param norm_layer: Normalization layer. Default: nn.LayerNorm.
+:type norm_layer: nn.Module
+:param ape: If True, add absolute position embedding to the patch embedding. Default: False
+:type ape: bool
+:param patch_norm: If True, add normalization after patch embedding. Default: True
+:type patch_norm: bool
+:param use_checkpoint: Whether to use checkpointing to save memory. Default: False
+:type use_checkpoint: bool</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.Mlp">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">Mlp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_features=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_features=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_layer=&lt;class</span> <span class="pre">'torch.nn.modules.activation.GELU'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop=0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#Mlp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.Mlp" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.PatchEmbed">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">PatchEmbed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">224</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_chans</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">embed_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">96</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_layer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#PatchEmbed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.PatchEmbed" title="Link to this definition">¶</a></dt>
+<dd><p>Image to Patch Embedding
+:param img_size: Image size.  Default: 224.
+:type img_size: int
+:param patch_size: Patch token size. Default: 4.
+:type patch_size: int
+:param in_chans: Number of input image channels. Default: 3.
+:type in_chans: int
+:param embed_dim: Number of linear projection output channels. Default: 96.
+:type embed_dim: int
+:param norm_layer: Normalization layer. Default: None
+:type norm_layer: nn.Module, optional</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.PatchMerging">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">PatchMerging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_resolution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#PatchMerging"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.PatchMerging" title="Link to this definition">¶</a></dt>
+<dd><p>Patch Merging Layer.
+:param input_resolution: Resolution of input feature.
+:type input_resolution: tuple[int]
+:param dim: Number of input channels.
+:type dim: int
+:param norm_layer: Normalization layer.  Default: nn.LayerNorm
+:type norm_layer: nn.Module, optional</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.PatchMerging.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#PatchMerging.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.PatchMerging.extra_repr" title="Link to this definition">¶</a></dt>
+<dd><p>Return the extra representation of the module.</p>
+<p>To print customized extra information, you should re-implement
+this method in your own modules. Both single-line and multi-line
+strings are acceptable.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.PatchMerging_cnn">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">PatchMerging_cnn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#PatchMerging_cnn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.PatchMerging_cnn" title="Link to this definition">¶</a></dt>
+<dd><p>Patch Merging Layer.
+:param input_resolution: Resolution of input feature.
+:type input_resolution: tuple[int]
+:param dim: Number of input channels.
+:type dim: int
+:param norm_layer: Normalization layer.  Default: nn.LayerNorm
+:type norm_layer: nn.Module, optional</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.PatchMerging_cnn.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#PatchMerging_cnn.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.PatchMerging_cnn.extra_repr" title="Link to this definition">¶</a></dt>
+<dd><p>Return the extra representation of the module.</p>
+<p>To print customized extra information, you should re-implement
+this method in your own modules. Both single-line and multi-line
+strings are acceptable.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.PatchMerging_scale">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">PatchMerging_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_resolution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale=2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#PatchMerging_scale"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.PatchMerging_scale" title="Link to this definition">¶</a></dt>
+<dd><p>Patch Merging Layer.
+:param input_resolution: Resolution of input feature.
+:type input_resolution: tuple[int]
+:param dim: Number of input channels.
+:type dim: int
+:param norm_layer: Normalization layer.  Default: nn.LayerNorm
+:type norm_layer: nn.Module, optional</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.SwinTransformer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">SwinTransformer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">img_size=224,</span> <span class="pre">patch_size=4,</span> <span class="pre">in_chans=3,</span> <span class="pre">num_classes=1000,</span> <span class="pre">embed_dim=96,</span> <span class="pre">depths=[2,</span> <span class="pre">2,</span> <span class="pre">6,</span> <span class="pre">2],</span> <span class="pre">num_heads=[3,</span> <span class="pre">6,</span> <span class="pre">12,</span> <span class="pre">24],</span> <span class="pre">window_size=7,</span> <span class="pre">mlp_ratio=4.0,</span> <span class="pre">qkv_bias=True,</span> <span class="pre">qk_scale=None,</span> <span class="pre">drop_rate=0.0,</span> <span class="pre">attn_drop_rate=0.0,</span> <span class="pre">drop_path_rate=0.1,</span> <span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;,</span> <span class="pre">ape=False,</span> <span class="pre">patch_norm=True,</span> <span class="pre">use_checkpoint=False,</span> <span class="pre">**kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#SwinTransformer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.SwinTransformer" title="Link to this definition">¶</a></dt>
+<dd><dl>
+<dt>Swin Transformer</dt><dd><dl>
+<dt>A PyTorch impl of<span class="classifier"><cite>Swin Transformer: Hierarchical Vision Transformer using Shifted Windows</cite>  -</span></dt><dd><p><a class="reference external" href="https://arxiv.org/pdf/2103.14030">https://arxiv.org/pdf/2103.14030</a></p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>img_size</strong> (<em>int</em><em> | </em><em>tuple</em><em>(</em><em>int</em><em>)</em>) – Input image size. Default 224</p></li>
+<li><p><strong>patch_size</strong> (<em>int</em><em> | </em><em>tuple</em><em>(</em><em>int</em><em>)</em>) – Patch size. Default: 4</p></li>
+<li><p><strong>in_chans</strong> (<em>int</em>) – Number of input image channels. Default: 3</p></li>
+<li><p><strong>num_classes</strong> (<em>int</em>) – Number of classes for classification head. Default: 1000</p></li>
+<li><p><strong>embed_dim</strong> (<em>int</em>) – Patch embedding dimension. Default: 96</p></li>
+<li><p><strong>depths</strong> (<em>tuple</em><em>(</em><em>int</em><em>)</em>) – Depth of each Swin Transformer layer.</p></li>
+<li><p><strong>num_heads</strong> (<em>tuple</em><em>(</em><em>int</em><em>)</em>) – Number of attention heads in different layers.</p></li>
+<li><p><strong>window_size</strong> (<em>int</em>) – Window size. Default: 7</p></li>
+<li><p><strong>mlp_ratio</strong> (<em>float</em>) – Ratio of mlp hidden dim to embedding dim. Default: 4</p></li>
+<li><p><strong>qkv_bias</strong> (<em>bool</em>) – If True, add a learnable bias to query, key, value. Default: True</p></li>
+<li><p><strong>qk_scale</strong> (<em>float</em>) – Override default qk scale of head_dim ** -0.5 if set. Default: None</p></li>
+<li><p><strong>drop_rate</strong> (<em>float</em>) – Dropout rate. Default: 0</p></li>
+<li><p><strong>attn_drop_rate</strong> (<em>float</em>) – Attention dropout rate. Default: 0</p></li>
+<li><p><strong>drop_path_rate</strong> (<em>float</em>) – Stochastic depth rate. Default: 0.1</p></li>
+<li><p><strong>norm_layer</strong> (<em>nn.Module</em>) – Normalization layer. Default: nn.LayerNorm.</p></li>
+<li><p><strong>ape</strong> (<em>bool</em>) – If True, add absolute position embedding to the patch embedding. Default: False</p></li>
+<li><p><strong>patch_norm</strong> (<em>bool</em>) – If True, add normalization after patch embedding. Default: True</p></li>
+<li><p><strong>use_checkpoint</strong> (<em>bool</em>) – Whether to use checkpointing to save memory. Default: False</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.SwinTransformerBlock">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">SwinTransformerBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_resolution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size=7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shift_size=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mlp_ratio=4.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qkv_bias=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qk_scale=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attn_drop=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_path=0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_layer=&lt;class</span> <span class="pre">'torch.nn.modules.activation.GELU'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#SwinTransformerBlock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.SwinTransformerBlock" title="Link to this definition">¶</a></dt>
+<dd><p>Swin Transformer Block.
+:param dim: Number of input channels.
+:type dim: int
+:param input_resolution: Input resulotion.
+:type input_resolution: tuple[int]
+:param num_heads: Number of attention heads.
+:type num_heads: int
+:param window_size: Window size.
+:type window_size: int
+:param shift_size: Shift size for SW-MSA.
+:type shift_size: int
+:param mlp_ratio: Ratio of mlp hidden dim to embedding dim.
+:type mlp_ratio: float
+:param qkv_bias: If True, add a learnable bias to query, key, value. Default: True
+:type qkv_bias: bool, optional
+:param qk_scale: Override default qk scale of head_dim ** -0.5 if set.
+:type qk_scale: float | None, optional
+:param drop: Dropout rate. Default: 0.0
+:type drop: float, optional
+:param attn_drop: Attention dropout rate. Default: 0.0
+:type attn_drop: float, optional
+:param drop_path: Stochastic depth rate. Default: 0.0
+:type drop_path: float, optional
+:param act_layer: Activation layer. Default: nn.GELU
+:type act_layer: nn.Module, optional
+:param norm_layer: Normalization layer.  Default: nn.LayerNorm
+:type norm_layer: nn.Module, optional</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.SwinTransformerBlock.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#SwinTransformerBlock.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.SwinTransformerBlock.extra_repr" title="Link to this definition">¶</a></dt>
+<dd><p>Return the extra representation of the module.</p>
+<p>To print customized extra information, you should re-implement
+this method in your own modules. Both single-line and multi-line
+strings are acceptable.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.Upsample">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">Upsample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_resolution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#Upsample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.Upsample" title="Link to this definition">¶</a></dt>
+<dd><p>“ upsample channels.
+:param input_resolution: Resolution of input feature.
+:type input_resolution: tuple[int]
+:param dim: Number of input channels.
+:type dim: int
+:param norm_layer: Normalization layer.  Default: nn.LayerNorm
+:type norm_layer: nn.Module, optional</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.Upsample_cnn">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">Upsample_cnn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.batchnorm.BatchNorm2d'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#Upsample_cnn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.Upsample_cnn" title="Link to this definition">¶</a></dt>
+<dd><p>“ upsample channels.
+:param input_resolution: Resolution of input feature.
+:type input_resolution: tuple[int]
+:param dim: Number of input channels.
+:type dim: int
+:param norm_layer: Normalization layer.  Default: nn.LayerNorm
+:type norm_layer: nn.Module, optional</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.Upsample_layer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">Upsample_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_resolution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#Upsample_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.Upsample_layer" title="Link to this definition">¶</a></dt>
+<dd><p>“ upsample channels.
+:param input_resolution: Resolution of input feature.
+:type input_resolution: tuple[int]
+:param dim: Number of input channels.
+:type dim: int
+:param norm_layer: Normalization layer.  Default: nn.LayerNorm
+:type norm_layer: nn.Module, optional</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.Upsample_promotion">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">Upsample_promotion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_resolution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_flag=1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#Upsample_promotion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.Upsample_promotion" title="Link to this definition">¶</a></dt>
+<dd><p>“ upsample channels.
+:param input_resolution: Resolution of input feature.
+:type input_resolution: tuple[int]
+:param dim: Number of input channels.
+:type dim: int
+:param norm_layer: Normalization layer.  Default: nn.LayerNorm
+:type norm_layer: nn.Module, optional</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.Upsample_promotion_cnn">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">Upsample_promotion_cnn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.batchnorm.BatchNorm2d'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#Upsample_promotion_cnn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.Upsample_promotion_cnn" title="Link to this definition">¶</a></dt>
+<dd><p>“ upsample channels.
+:param input_resolution: Resolution of input feature.
+:type input_resolution: tuple[int]
+:param dim: Number of input channels.
+:type dim: int
+:param norm_layer: Normalization layer.  Default: nn.LayerNorm
+:type norm_layer: nn.Module, optional</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.Upsample_promotion_interpolate">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">Upsample_promotion_interpolate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_resolution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#Upsample_promotion_interpolate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.Upsample_promotion_interpolate" title="Link to this definition">¶</a></dt>
+<dd><p>“ upsample channels.
+:param input_resolution: Resolution of input feature.
+:type input_resolution: tuple[int]
+:param dim: Number of input channels.
+:type dim: int
+:param norm_layer: Normalization layer.  Default: nn.LayerNorm
+:type norm_layer: nn.Module, optional</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.WindowAttention">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">WindowAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qkv_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qk_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attn_drop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proj_drop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#WindowAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.WindowAttention" title="Link to this definition">¶</a></dt>
+<dd><p>Window based multi-head self attention (W-MSA) module with relative position bias.
+It supports both of shifted and non-shifted window.
+:param dim: Number of input channels.
+:type dim: int
+:param window_size: The height and width of the window.
+:type window_size: tuple[int]
+:param num_heads: Number of attention heads.
+:type num_heads: int
+:param qkv_bias: If True, add a learnable bias to query, key, value. Default: True
+:type qkv_bias: bool, optional
+:param qk_scale: Override default qk scale of head_dim ** -0.5 if set
+:type qk_scale: float | None, optional
+:param attn_drop: Dropout ratio of attention weight. Default: 0.0
+:type attn_drop: float, optional
+:param proj_drop: Dropout ratio of output. Default: 0.0
+:type proj_drop: float, optional</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.WindowAttention.extra_repr">
+<span class="sig-name descname"><span class="pre">extra_repr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#WindowAttention.extra_repr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.WindowAttention.extra_repr" title="Link to this definition">¶</a></dt>
+<dd><p>Return the extra representation of the module.</p>
+<p>To print customized extra information, you should re-implement
+this method in your own modules. Both single-line and multi-line
+strings are acceptable.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.my_cnn">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">my_cnn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">downsample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#my_cnn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.my_cnn" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.my_cnn_multi">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">my_cnn_multi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">downsample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#my_cnn_multi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.my_cnn_multi" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.resi_connection_layer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">resi_connection_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_resolution</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#resi_connection_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.resi_connection_layer" title="Link to this definition">¶</a></dt>
+<dd><p>“ resi_connection_layer.
+:param input_resolution: Resolution of input feature.
+:type input_resolution: tuple[int]
+:param dim: Number of input channels.
+:type dim: int
+:param norm_layer: Normalization layer.  Default: nn.LayerNorm
+:type norm_layer: nn.Module, optional</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.window_partition">
+<span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">window_partition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#window_partition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.window_partition" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – (B, H, W, C)</p></li>
+<li><p><strong>window_size</strong> (<em>int</em>) – window size</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(num_windows*B, window_size, window_size, C)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>windows</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="olimp.precompensation.nn.models.cvd_swin.window_reverse">
+<span class="sig-prename descclassname"><span class="pre">olimp.precompensation.nn.models.cvd_swin.</span></span><span class="sig-name descname"><span class="pre">window_reverse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">windows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">W</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../../_modules/olimp/precompensation/nn/models/cvd_swin.html#window_reverse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#olimp.precompensation.nn.models.cvd_swin.window_reverse" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>windows</strong> – (num_windows*B, window_size, window_size, C)</p></li>
+<li><p><strong>window_size</strong> (<em>int</em>) – Window size</p></li>
+<li><p><strong>H</strong> (<em>int</em>) – Height of image</p></li>
+<li><p><strong>W</strong> (<em>int</em>) – Width of image</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(B, H, W, C)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>x</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">PyOlimp</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../dataset.html">Dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evaluation/loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processing.html">Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../simulate.html">Simulate</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../train_configuration.html">Train Configuration</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Precompensation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../analytics.html">Analytic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../basic.html">Basic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../optimization.html">Optimization</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Models</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Precompensation</a><ul>
+  <li><a href="../index.html">Models</a><ul>
+      <li>Previous: <a href="cvae.html" title="previous chapter">olimp.precompensation.nn.models.cvae</a></li>
+      <li>Next: <a href="dwdn.html" title="next chapter">olimp.precompensation.nn.models.dwdn</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, PyOlimp authors.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="../../../../_sources/olimp/precompensation/nn/models/cvd_swin.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>piq.fsim &#8212; PyOlimp 0.1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=1aa832ab" />
+    <script src="../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for piq.fsim</h1><div class="highlight"><pre>
+<span></span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Implementation of Feature Similarity Index Measure</span>
+<span class="sd">Code is based on MATLAB version for computations in pixel domain</span>
+<span class="sd">https://www4.comp.polyu.edu.hk/~cslzhang/IQA/FSIM/Files/FeatureSIM.m</span>
+<span class="sd">References:</span>
+<span class="sd">    https://www4.comp.polyu.edu.hk/~cslzhang/IQA/TIP_IQA_FSIM.pdf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch.nn.modules.loss</span> <span class="kn">import</span> <span class="n">_Loss</span>
+
+<span class="kn">from</span> <span class="nn">piq.utils</span> <span class="kn">import</span> <span class="n">_validate_input</span><span class="p">,</span> <span class="n">_reduce</span><span class="p">,</span> <span class="n">_parse_version</span>
+<span class="kn">from</span> <span class="nn">piq.functional</span> <span class="kn">import</span> <span class="n">ifftshift</span><span class="p">,</span> <span class="n">get_meshgrid</span><span class="p">,</span> <span class="n">similarity_map</span><span class="p">,</span> <span class="n">gradient_map</span><span class="p">,</span> <span class="n">scharr_filter</span><span class="p">,</span> <span class="n">rgb2yiq</span>
+
+
+<span class="k">def</span> <span class="nf">fsim</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span>
+         <span class="n">data_range</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">chromatic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+         <span class="n">scales</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">orientations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">min_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
+         <span class="n">mult</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">sigma_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.55</span><span class="p">,</span> <span class="n">delta_theta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.2</span><span class="p">,</span>
+         <span class="n">k</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute Feature Similarity Index Measure for a batch of images.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x: An input tensor. Shape :math:`(N, C, H, W)`.</span>
+<span class="sd">        y: A target tensor. Shape :math:`(N, C, H, W)`.</span>
+<span class="sd">        reduction: Specifies the reduction type:</span>
+<span class="sd">            ``&#39;none&#39;`` | ``&#39;mean&#39;`` | ``&#39;sum&#39;``. Default:``&#39;mean&#39;``</span>
+<span class="sd">        data_range: Maximum value range of images (usually 1.0 or 255).</span>
+<span class="sd">        chromatic: Flag to compute FSIMc, which also takes into account chromatic components</span>
+<span class="sd">        scales: Number of wavelets used for computation of phase congruensy maps</span>
+<span class="sd">        orientations: Number of filter orientations used for computation of phase congruensy maps</span>
+<span class="sd">        min_length: Wavelength of smallest scale filter</span>
+<span class="sd">        mult: Scaling factor between successive filters</span>
+<span class="sd">        sigma_f: Ratio of the standard deviation of the Gaussian describing the log Gabor filter&#39;s</span>
+<span class="sd">            transfer function in the frequency domain to the filter center frequency.</span>
+<span class="sd">        delta_theta: Ratio of angular interval between filter orientations and the standard deviation</span>
+<span class="sd">            of the angular Gaussian function used to construct filters in the frequency plane.</span>
+<span class="sd">        k: No of standard deviations of the noise energy beyond the mean at which we set the noise</span>
+<span class="sd">            threshold  point, below which phase congruency values get penalized.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Index of similarity between two images. Usually in [0, 1] interval.</span>
+<span class="sd">        Can be bigger than 1 for predicted :math:`x` images with higher contrast than the original ones.</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        L. Zhang, L. Zhang, X. Mou and D. Zhang, &quot;FSIM: A Feature Similarity Index for Image Quality Assessment,&quot;</span>
+<span class="sd">        IEEE Transactions on Image Processing, vol. 20, no. 8, pp. 2378-2386, Aug. 2011, doi: 10.1109/TIP.2011.2109730.</span>
+<span class="sd">        https://ieeexplore.ieee.org/document/5705575</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This implementation is based on the original MATLAB code.</span>
+<span class="sd">        https://www4.comp.polyu.edu.hk/~cslzhang/IQA/FSIM/FSIM.htm</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_validate_input</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">],</span> <span class="n">dim_range</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">data_range</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">data_range</span><span class="p">))</span>
+
+    <span class="c1"># Rescale to [0, 255] range, because all constant are calculated for this factor</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">data_range</span><span class="p">)</span> <span class="o">*</span> <span class="mi">255</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">data_range</span><span class="p">)</span> <span class="o">*</span> <span class="mi">255</span>
+
+    <span class="c1"># Apply average pooling</span>
+    <span class="n">kernel_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:])</span> <span class="o">/</span> <span class="mi">256</span><span class="p">))</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">avg_pool2d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">avg_pool2d</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">)</span>
+
+    <span class="n">num_channels</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Convert RGB to YIQ color space https://en.wikipedia.org/wiki/YIQ</span>
+    <span class="k">if</span> <span class="n">num_channels</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">x_yiq</span> <span class="o">=</span> <span class="n">rgb2yiq</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">y_yiq</span> <span class="o">=</span> <span class="n">rgb2yiq</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+        <span class="n">x_lum</span> <span class="o">=</span> <span class="n">x_yiq</span><span class="p">[:,</span> <span class="p">:</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">y_lum</span> <span class="o">=</span> <span class="n">y_yiq</span><span class="p">[:,</span> <span class="p">:</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">x_i</span> <span class="o">=</span> <span class="n">x_yiq</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">y_i</span> <span class="o">=</span> <span class="n">y_yiq</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">x_q</span> <span class="o">=</span> <span class="n">x_yiq</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:]</span>
+        <span class="n">y_q</span> <span class="o">=</span> <span class="n">y_yiq</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:]</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">x_lum</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="n">y_lum</span> <span class="o">=</span> <span class="n">y</span>
+
+    <span class="c1"># Compute filters</span>
+    <span class="n">filters</span> <span class="o">=</span> <span class="n">_construct_filters</span><span class="p">(</span><span class="n">x_lum</span><span class="p">,</span> <span class="n">scales</span><span class="p">,</span> <span class="n">orientations</span><span class="p">,</span> <span class="n">min_length</span><span class="p">,</span> <span class="n">mult</span><span class="p">,</span> <span class="n">sigma_f</span><span class="p">,</span> <span class="n">delta_theta</span><span class="p">)</span>
+
+    <span class="c1"># Compute phase congruency maps</span>
+    <span class="n">pc_x</span> <span class="o">=</span> <span class="n">_phase_congruency</span><span class="p">(</span><span class="n">x_lum</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="n">filters</span><span class="p">,</span> <span class="n">scales</span><span class="o">=</span><span class="n">scales</span><span class="p">,</span> <span class="n">orientations</span><span class="o">=</span><span class="n">orientations</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
+    <span class="n">pc_y</span> <span class="o">=</span> <span class="n">_phase_congruency</span><span class="p">(</span><span class="n">y_lum</span><span class="p">,</span> <span class="n">filters</span><span class="o">=</span><span class="n">filters</span><span class="p">,</span> <span class="n">scales</span><span class="o">=</span><span class="n">scales</span><span class="p">,</span> <span class="n">orientations</span><span class="o">=</span><span class="n">orientations</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
+
+    <span class="c1"># Gradient maps</span>
+    <span class="n">sch_filter</span> <span class="o">=</span> <span class="n">scharr_filter</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">x_lum</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x_lum</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">kernels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">sch_filter</span><span class="p">,</span> <span class="n">sch_filter</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)])</span>
+    <span class="n">grad_map_x</span> <span class="o">=</span> <span class="n">gradient_map</span><span class="p">(</span><span class="n">x_lum</span><span class="p">,</span> <span class="n">kernels</span><span class="p">)</span>
+    <span class="n">grad_map_y</span> <span class="o">=</span> <span class="n">gradient_map</span><span class="p">(</span><span class="n">y_lum</span><span class="p">,</span> <span class="n">kernels</span><span class="p">)</span>
+
+    <span class="c1"># Constants from the paper</span>
+    <span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T3</span><span class="p">,</span> <span class="n">T4</span><span class="p">,</span> <span class="n">lmbda</span> <span class="o">=</span> <span class="mf">0.85</span><span class="p">,</span> <span class="mi">160</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mf">0.03</span>
+
+    <span class="c1"># Compute FSIM</span>
+    <span class="n">PC</span> <span class="o">=</span> <span class="n">similarity_map</span><span class="p">(</span><span class="n">pc_x</span><span class="p">,</span> <span class="n">pc_y</span><span class="p">,</span> <span class="n">T1</span><span class="p">)</span>
+    <span class="n">GM</span> <span class="o">=</span> <span class="n">similarity_map</span><span class="p">(</span><span class="n">grad_map_x</span><span class="p">,</span> <span class="n">grad_map_y</span><span class="p">,</span> <span class="n">T2</span><span class="p">)</span>
+    <span class="n">pc_max</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">pc_x</span> <span class="o">&gt;</span> <span class="n">pc_y</span><span class="p">,</span> <span class="n">pc_x</span><span class="p">,</span> <span class="n">pc_y</span><span class="p">)</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="n">GM</span> <span class="o">*</span> <span class="n">PC</span> <span class="o">*</span> <span class="n">pc_max</span>
+
+    <span class="k">if</span> <span class="n">chromatic</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">num_channels</span> <span class="o">==</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;Chromatic component can be computed only for RGB images!&quot;</span>
+        <span class="n">S_I</span> <span class="o">=</span> <span class="n">similarity_map</span><span class="p">(</span><span class="n">x_i</span><span class="p">,</span> <span class="n">y_i</span><span class="p">,</span> <span class="n">T3</span><span class="p">)</span>
+        <span class="n">S_Q</span> <span class="o">=</span> <span class="n">similarity_map</span><span class="p">(</span><span class="n">x_q</span><span class="p">,</span> <span class="n">y_q</span><span class="p">,</span> <span class="n">T4</span><span class="p">)</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">score</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">S_I</span> <span class="o">*</span> <span class="n">S_Q</span><span class="p">)</span> <span class="o">**</span> <span class="n">lmbda</span>
+        <span class="c1"># Complex gradients will work in PyTorch 1.6.0</span>
+        <span class="c1"># score = score * torch.real((S_I * S_Q).to(torch.complex64) ** lmbda)</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span> <span class="o">/</span> <span class="n">pc_max</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">_reduce</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">reduction</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_construct_filters</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">scales</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">orientations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">min_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
+                       <span class="n">mult</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">sigma_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.55</span><span class="p">,</span> <span class="n">delta_theta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a stack of filters used for computation of phase congruensy maps</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x: Tensor. Shape :math:`(N, 1, H, W)`.</span>
+<span class="sd">        scales: Number of wavelets</span>
+<span class="sd">        orientations: Number of filter orientations</span>
+<span class="sd">        min_length: Wavelength of smallest scale filter</span>
+<span class="sd">        mult: Scaling factor between successive filters</span>
+<span class="sd">        sigma_f: Ratio of the standard deviation of the Gaussian</span>
+<span class="sd">            describing the log Gabor filter&#39;s transfer function</span>
+<span class="sd">            in the frequency domain to the filter center frequency.</span>
+<span class="sd">        delta_theta: Ratio of angular interval between filter orientations</span>
+<span class="sd">            and the standard deviation of the angular Gaussian function</span>
+<span class="sd">            used to construct filters in the freq. plane.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">          Tensor with filters. Shape :math:`(1, scales * orientations, H, W)`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">N</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># Calculate the standard deviation of the angular Gaussian function</span>
+    <span class="c1"># used to construct filters in the freq. plane.</span>
+    <span class="n">theta_sigma</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span><span class="n">orientations</span> <span class="o">*</span> <span class="n">delta_theta</span><span class="p">)</span>
+
+    <span class="c1"># Pre-compute some stuff to speed up filter construction</span>
+    <span class="n">grid_x</span><span class="p">,</span> <span class="n">grid_y</span> <span class="o">=</span> <span class="n">get_meshgrid</span><span class="p">((</span><span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="n">radius</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">grid_x</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">grid_y</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="n">grid_y</span><span class="p">,</span> <span class="n">grid_x</span><span class="p">)</span>
+
+    <span class="c1"># First construct a low-pass filter that is as large as possible, yet falls</span>
+    <span class="c1"># away to zero at the boundaries.  All log Gabor filters are multiplied by</span>
+    <span class="c1"># this to ensure no extra frequencies at the &#39;corners&#39; of the FFT are</span>
+    <span class="c1"># incorporated as this seems to upset the normalisation process when</span>
+    <span class="c1"># Computed explicitly without _lowpassfilter</span>
+    <span class="c1"># Explicit low pass filter computation</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">15</span>  <span class="c1"># default parameter</span>
+    <span class="n">cutoff</span> <span class="o">=</span> <span class="mf">.45</span>  <span class="c1"># default parameter</span>
+    <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">cutoff</span> <span class="o">&lt;=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">&quot;Cutoff frequency must be between 0 and 0.5&quot;</span>
+    <span class="k">assert</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">==</span> <span class="n">n</span><span class="p">,</span> <span class="s2">&quot;n must be an integer &gt;= 1&quot;</span>
+    <span class="n">lp</span> <span class="o">=</span> <span class="n">ifftshift</span><span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="p">(</span><span class="n">radius</span> <span class="o">/</span> <span class="n">cutoff</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n</span><span class="p">)))</span>
+
+    <span class="c1"># Quadrant shift radius and theta so that filters are constructed with 0 frequency at the corners.</span>
+    <span class="c1"># Get rid of the 0 radius value at the 0 frequency point (now at top-left corner)</span>
+    <span class="c1"># so that taking the log of the radius will not cause trouble.</span>
+    <span class="n">radius</span> <span class="o">=</span> <span class="n">ifftshift</span><span class="p">(</span><span class="n">radius</span><span class="p">)</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">ifftshift</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">radius</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="n">sintheta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">costheta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+
+    <span class="c1"># Filters are constructed in terms of two components.</span>
+    <span class="c1"># 1) The radial component, which controls the frequency band that the filter responds to</span>
+    <span class="c1"># 2) The angular component, which controls the orientation that the filter responds to.</span>
+    <span class="c1"># The two components are multiplied together to construct the overall filter.</span>
+
+    <span class="c1"># Construct the radial filter components...</span>
+    <span class="n">log_gabor</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">scales</span><span class="p">):</span>
+        <span class="n">wavelength</span> <span class="o">=</span> <span class="n">min_length</span> <span class="o">*</span> <span class="n">mult</span> <span class="o">**</span> <span class="n">s</span>
+        <span class="n">omega_0</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">wavelength</span>
+        <span class="n">gabor_filter</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">radius</span> <span class="o">/</span> <span class="n">omega_0</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">sigma_f</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">gabor_filter</span> <span class="o">=</span> <span class="n">gabor_filter</span> <span class="o">*</span> <span class="n">lp</span>
+        <span class="n">gabor_filter</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">log_gabor</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gabor_filter</span><span class="p">)</span>
+
+    <span class="n">log_gabor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">log_gabor</span><span class="p">)</span>
+
+    <span class="c1"># Then construct the angular filter components...</span>
+    <span class="n">spread</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">orientations</span><span class="p">):</span>
+        <span class="n">angl</span> <span class="o">=</span> <span class="n">o</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">orientations</span>
+
+        <span class="c1"># For each point in the filter matrix calculate the angular distance from</span>
+        <span class="c1"># the specified filter orientation.  To overcome the angular wrap-around</span>
+        <span class="c1"># problem sine difference and cosine difference values are first computed</span>
+        <span class="c1"># and then the atan2 function is used to determine angular distance.</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">sintheta</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angl</span><span class="p">)</span> <span class="o">-</span> <span class="n">costheta</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angl</span><span class="p">)</span>  <span class="c1"># Difference in sine.</span>
+        <span class="n">dc</span> <span class="o">=</span> <span class="n">costheta</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angl</span><span class="p">)</span> <span class="o">+</span> <span class="n">sintheta</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">angl</span><span class="p">)</span>  <span class="c1"># Difference in cosine.</span>
+        <span class="n">dtheta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">dc</span><span class="p">))</span>
+        <span class="n">spread</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="o">-</span> <span class="n">dtheta</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">theta_sigma</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)))</span>
+
+    <span class="n">spread</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">spread</span><span class="p">)</span>
+
+    <span class="c1"># Multiply, add batch dimension and transfer to correct device.</span>
+    <span class="n">filters</span> <span class="o">=</span> <span class="p">(</span><span class="n">spread</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">scales</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">log_gabor</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">orientations</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">filters</span>
+
+
+<span class="k">def</span> <span class="nf">_phase_congruency</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">filters</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">scales</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">orientations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+                      <span class="n">k</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute Phase Congruence for a batch of greyscale images</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x: Tensor. Shape :math:`(N, 1, H, W)`.</span>
+<span class="sd">        filters: Kernels to extract features.</span>
+<span class="sd">        scales: Number of wavelet scales</span>
+<span class="sd">        orientations: Number of filter orientations</span>
+<span class="sd">        k: No of standard deviations of the noise energy beyond the mean</span>
+<span class="sd">            at which we set the noise threshold point, below which phase</span>
+<span class="sd">            congruency values get penalized.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Phase Congruency map with shape :math:`(N, H, W)`</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">EPS</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span>
+
+    <span class="n">N</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># Fourier transform</span>
+    <span class="n">recommended_torch_version</span> <span class="o">=</span> <span class="n">_parse_version</span><span class="p">(</span><span class="s1">&#39;1.8.0&#39;</span><span class="p">)</span>
+    <span class="n">torch_version</span> <span class="o">=</span> <span class="n">_parse_version</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">torch_version</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">torch_version</span> <span class="o">&gt;=</span> <span class="n">recommended_torch_version</span><span class="p">:</span>
+        <span class="n">imagefft</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">filters_ifft</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">filters</span><span class="p">)</span>
+        <span class="n">filters_ifft</span> <span class="o">=</span> <span class="n">filters_ifft</span><span class="o">.</span><span class="n">real</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">H</span> <span class="o">*</span> <span class="n">W</span><span class="p">)</span>
+        <span class="n">even_odd</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">view_as_real</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">imagefft</span> <span class="o">*</span> <span class="n">filters</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">orientations</span><span class="p">,</span> <span class="n">scales</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">imagefft</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">onesided</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">filters_ifft</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ifft</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">filters</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">filters</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="mi">2</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">filters_ifft</span> <span class="o">*=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">H</span> <span class="o">*</span> <span class="n">W</span><span class="p">)</span>
+        <span class="n">even_odd</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ifft</span><span class="p">(</span><span class="n">imagefft</span> <span class="o">*</span> <span class="n">filters</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">orientations</span><span class="p">,</span> <span class="n">scales</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># Amplitude of even &amp; odd filter response. An = sqrt(real^2 + imag^2)</span>
+    <span class="n">an</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">even_odd</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="c1"># Take filter at scale 0 and sum spatially</span>
+    <span class="c1"># Record mean squared filter value at smallest scale.</span>
+    <span class="c1"># This is used for noise estimation.</span>
+    <span class="n">em_n</span> <span class="o">=</span> <span class="p">(</span><span class="n">filters</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">orientations</span><span class="p">,</span> <span class="n">scales</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Sum of even filter convolution results.</span>
+    <span class="n">sum_e</span> <span class="o">=</span> <span class="n">even_odd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Sum of odd filter convolution results.</span>
+    <span class="n">sum_o</span> <span class="o">=</span> <span class="n">even_odd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Get weighted mean filter response vector, this gives the weighted mean phase angle.</span>
+    <span class="n">x_energy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sum_e</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">sum_o</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span>
+
+    <span class="n">mean_e</span> <span class="o">=</span> <span class="n">sum_e</span> <span class="o">/</span> <span class="n">x_energy</span>
+    <span class="n">mean_o</span> <span class="o">=</span> <span class="n">sum_o</span> <span class="o">/</span> <span class="n">x_energy</span>
+
+    <span class="c1"># Now calculate An(cos(phase_deviation) - | sin(phase_deviation)) | by</span>
+    <span class="c1"># using dot and cross products between the weighted mean filter response</span>
+    <span class="c1"># vector and the individual filter response vectors at each scale.</span>
+    <span class="c1"># This quantity is phase congruency multiplied by An, which we call energy.</span>
+
+    <span class="c1"># Extract even and odd convolution results.</span>
+    <span class="n">even</span> <span class="o">=</span> <span class="n">even_odd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">odd</span> <span class="o">=</span> <span class="n">even_odd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">energy</span> <span class="o">=</span> <span class="p">(</span><span class="n">even</span> <span class="o">*</span> <span class="n">mean_e</span> <span class="o">+</span> <span class="n">odd</span> <span class="o">*</span> <span class="n">mean_o</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">even</span> <span class="o">*</span> <span class="n">mean_o</span> <span class="o">-</span> <span class="n">odd</span> <span class="o">*</span> <span class="n">mean_e</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Compensate for noise</span>
+    <span class="c1"># We estimate the noise power from the energy squared response at the</span>
+    <span class="c1"># smallest scale.  If the noise is Gaussian the energy squared will have a</span>
+    <span class="c1"># Chi-squared 2DOF pdf.  We calculate the median energy squared response</span>
+    <span class="c1"># as this is a robust statistic.  From this we estimate the mean.</span>
+    <span class="c1"># The estimate of noise power is obtained by dividing the mean squared</span>
+    <span class="c1"># energy value by the mean squared filter value</span>
+
+    <span class="n">abs_eo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">even_odd</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">orientations</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">H</span> <span class="o">*</span> <span class="n">W</span><span class="p">)</span>
+    <span class="n">median_e2n</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">abs_eo</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="n">mean_e2n</span> <span class="o">=</span> <span class="o">-</span> <span class="n">median_e2n</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="c1"># Estimate of noise power.</span>
+    <span class="n">noise_power</span> <span class="o">=</span> <span class="n">mean_e2n</span> <span class="o">/</span> <span class="n">em_n</span>
+
+    <span class="c1"># Now estimate the total energy^2 due to noise</span>
+    <span class="c1"># Estimate for sum(An^2) + sum(Ai.*Aj.*(cphi.*cphj + sphi.*sphj))</span>
+    <span class="n">filters_ifft</span> <span class="o">=</span> <span class="n">filters_ifft</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">orientations</span><span class="p">,</span> <span class="n">scales</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+
+    <span class="n">sum_an2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">filters_ifft</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">3</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">sum_ai_aj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">orientations</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">scales</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">sum_ai_aj</span> <span class="o">=</span> <span class="n">sum_ai_aj</span> <span class="o">+</span> <span class="p">(</span><span class="n">filters_ifft</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">filters_ifft</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">s</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">3</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">sum_an2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sum_an2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">sum_ai_aj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sum_ai_aj</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">noise_energy2</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">noise_power</span> <span class="o">*</span> <span class="n">sum_an2</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">noise_power</span> <span class="o">*</span> <span class="n">sum_ai_aj</span>
+
+    <span class="c1"># Rayleigh parameter</span>
+    <span class="n">tau</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">noise_energy2</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># Expected value of noise energy</span>
+    <span class="n">noise_energy</span> <span class="o">=</span> <span class="n">tau</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">moise_energy_sigma</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="mi">2</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">tau</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># Noise threshold</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">noise_energy</span> <span class="o">+</span> <span class="n">k</span> <span class="o">*</span> <span class="n">moise_energy_sigma</span>
+
+    <span class="c1"># The estimated noise effect calculated above is only valid for the PC_1 measure.</span>
+    <span class="c1"># The PC_2 measure does not lend itself readily to the same analysis.  However</span>
+    <span class="c1"># empirically it seems that the noise effect is overestimated roughly by a factor</span>
+    <span class="c1"># of 1.7 for the filter parameters used here.</span>
+
+    <span class="c1"># Empirical rescaling of the estimated noise effect to suit the PC_2 phase congruency measure</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">T</span> <span class="o">/</span> <span class="mf">1.7</span>
+
+    <span class="c1"># Apply noise threshold</span>
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">energy</span> <span class="o">-</span> <span class="n">T</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">T</span><span class="p">))</span>
+
+    <span class="n">energy_all</span> <span class="o">=</span> <span class="n">energy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span> <span class="o">+</span> <span class="n">EPS</span>
+    <span class="n">an_all</span> <span class="o">=</span> <span class="n">an</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span> <span class="o">+</span> <span class="n">EPS</span>
+    <span class="n">result_pc</span> <span class="o">=</span> <span class="n">energy_all</span> <span class="o">/</span> <span class="n">an_all</span>
+    <span class="k">return</span> <span class="n">result_pc</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="FSIMLoss">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.FSIMLoss">[docs]</a>
+<span class="k">class</span> <span class="nc">FSIMLoss</span><span class="p">(</span><span class="n">_Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Creates a criterion that measures the FSIM or FSIMc for input :math:`x` and target :math:`y`.</span>
+
+<span class="sd">    In order to be considered as a loss, value ``1 - clip(FSIM, min=0, max=1)`` is returned. If you need FSIM value,</span>
+<span class="sd">    use function `fsim` instead.</span>
+<span class="sd">    Supports greyscale and colour images with RGB channel order.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        reduction: Specifies the reduction type:</span>
+<span class="sd">            ``&#39;none&#39;`` | ``&#39;mean&#39;`` | ``&#39;sum&#39;``. Default:``&#39;mean&#39;``</span>
+<span class="sd">        data_range: Maximum value range of images (usually 1.0 or 255).</span>
+<span class="sd">        chromatic: Flag to compute FSIMc, which also takes into account chromatic components</span>
+<span class="sd">        scales: Number of wavelets used for computation of phase congruensy maps</span>
+<span class="sd">        orientations: Number of filter orientations used for computation of phase congruensy maps</span>
+<span class="sd">        min_length: Wavelength of smallest scale filter</span>
+<span class="sd">        mult: Scaling factor between successive filters</span>
+<span class="sd">        sigma_f: Ratio of the standard deviation of the Gaussian describing the log Gabor filter&#39;s</span>
+<span class="sd">            transfer function in the frequency domain to the filter center frequency.</span>
+<span class="sd">        delta_theta: Ratio of angular interval between filter orientations and the standard deviation</span>
+<span class="sd">            of the angular Gaussian function used to construct filters in the frequency plane.</span>
+<span class="sd">        k: No of standard deviations of the noise energy beyond the mean at which we set the noise</span>
+<span class="sd">            threshold  point, below which phase congruency values get penalized.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; loss = FSIMLoss()</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.rand(3, 3, 256, 256, requires_grad=True)</span>
+<span class="sd">        &gt;&gt;&gt; y = torch.rand(3, 3, 256, 256)</span>
+<span class="sd">        &gt;&gt;&gt; output = loss(x, y)</span>
+<span class="sd">        &gt;&gt;&gt; output.backward()</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        L. Zhang, L. Zhang, X. Mou and D. Zhang, &quot;FSIM: A Feature Similarity Index for Image Quality Assessment,&quot;</span>
+<span class="sd">        IEEE Transactions on Image Processing, vol. 20, no. 8, pp. 2378-2386, Aug. 2011, doi: 10.1109/TIP.2011.2109730.</span>
+<span class="sd">        https://ieeexplore.ieee.org/document/5705575</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="n">data_range</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">chromatic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                 <span class="n">scales</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">orientations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">min_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span> <span class="n">mult</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                 <span class="n">sigma_f</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.55</span><span class="p">,</span> <span class="n">delta_theta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.2</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_range</span> <span class="o">=</span> <span class="n">data_range</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reduction</span> <span class="o">=</span> <span class="n">reduction</span>
+
+        <span class="c1"># Save function with predefined parameters, rather than parameters themself</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fsim</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+            <span class="n">fsim</span><span class="p">,</span>
+            <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">,</span>
+            <span class="n">data_range</span><span class="o">=</span><span class="n">data_range</span><span class="p">,</span>
+            <span class="n">chromatic</span><span class="o">=</span><span class="n">chromatic</span><span class="p">,</span>
+            <span class="n">scales</span><span class="o">=</span><span class="n">scales</span><span class="p">,</span>
+            <span class="n">orientations</span><span class="o">=</span><span class="n">orientations</span><span class="p">,</span>
+            <span class="n">min_length</span><span class="o">=</span><span class="n">min_length</span><span class="p">,</span>
+            <span class="n">mult</span><span class="o">=</span><span class="n">mult</span><span class="p">,</span>
+            <span class="n">sigma_f</span><span class="o">=</span><span class="n">sigma_f</span><span class="p">,</span>
+            <span class="n">delta_theta</span><span class="o">=</span><span class="n">delta_theta</span><span class="p">,</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="FSIMLoss.forward">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.FSIMLoss.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computation of FSIM as a loss function.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x: An input tensor. Shape :math:`(N, C, H, W)`.</span>
+<span class="sd">            y: A target tensor. Shape :math:`(N, C, H, W)`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Value of FSIM loss to be minimized in [0, 1] range.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># All checks are done inside fsim function</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fsim</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+        <span class="c1"># Make sure value to be in [0, 1] range and convert to loss</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">PyOlimp</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/processing.html">olimp.processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html">olimp.evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.chromaticity_difference">olimp.evaluation.loss.chromaticity_difference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.color_blindness_loss">olimp.evaluation.loss.color_blindness_loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.corr">olimp.evaluation.loss.corr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.flip">olimp.evaluation.loss.flip</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.lcn">olimp.evaluation.loss.lcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.mse">olimp.evaluation.loss.mse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.nrmse">olimp.evaluation.loss.nrmse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.piq">olimp.evaluation.loss.piq</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.psnr">olimp.evaluation.loss.psnr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.rms">olimp.evaluation.loss.rms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.s_oklab">olimp.evaluation.loss.s_oklab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.ssim">olimp.evaluation.loss.ssim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.stress">olimp.evaluation.loss.stress</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.vsi">olimp.evaluation.loss.vsi</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/simulate.html">olimp.simulate.color_blindness_distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/simulate.html#module-olimp.simulate.refraction_distortion">olimp.simulate.refraction_distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/basic.html">olimp.precompensation.basic.huang</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/analytics.html">olimp.precompensation.analytics.feng_xu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html">olimp.precompensation.optimization.bregman_jumbo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html#module-olimp.precompensation.optimization.global_tone_mapping">olimp.precompensation.optimization.global_tone_mapping</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html#module-olimp.precompensation.optimization.montalto">olimp.precompensation.optimization.montalto</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html#module-olimp.precompensation.optimization.tennenholtz_zachevsky">olimp.precompensation.optimization.tennenholtz_zachevsky</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/vae.html">olimp.precompensation.nn.models.vae</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/unetvae.html">olimp.precompensation.nn.models.unetvae</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/cvae.html">olimp.precompensation.nn.models.cvae</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/cvd_swin.html">olimp.precompensation.nn.models.cvd_swin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/dwdn.html">olimp.precompensation.nn.models.dwdn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/vdsr.html">olimp.precompensation.nn.models.vdsr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/unet_efficient_b0.html">olimp.precompensation.nn.models.unet_efficient_b0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/usrnet.html">olimp.precompensation.nn.models.usrnet</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, PyOlimp authors.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

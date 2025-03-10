@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>piq.dss &#8212; PyOlimp 0.1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=1aa832ab" />
+    <script src="../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for piq.dss</h1><div class="highlight"><pre>
+<span></span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Implementation of DCT Subbands Similarity</span>
+<span class="sd">Code is based on MATLAB version for computations in pixel domain</span>
+<span class="sd">https://fr.mathworks.com/matlabcentral/fileexchange/\</span>
+<span class="sd">    53708-dct-subband-similarity-index-for-measuring-image-quality</span>
+<span class="sd">References:</span>
+<span class="sd">    http://sipl.eelabs.technion.ac.il/wp-content/uploads/\</span>
+<span class="sd">    sites/6/2016/09/paper15-Image-Quality-Assessment-Based-on-DCT-Subband-Similarity.pdf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">torch.nn.modules.loss</span> <span class="kn">import</span> <span class="n">_Loss</span>
+
+<span class="kn">from</span> <span class="nn">piq.utils</span> <span class="kn">import</span> <span class="n">_validate_input</span><span class="p">,</span> <span class="n">_reduce</span>
+<span class="kn">from</span> <span class="nn">piq.functional</span> <span class="kn">import</span> <span class="n">gaussian_filter</span><span class="p">,</span> <span class="n">rgb2yiq</span>
+
+
+<span class="k">def</span> <span class="nf">dss</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span>
+        <span class="n">data_range</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">dct_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="n">sigma_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.55</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">sigma_similarity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span> <span class="n">percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute DCT Subband Similarity index for a batch of images.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x: An input tensor. Shape :math:`(N, C, H, W)`.</span>
+<span class="sd">        y: A target tensor. Shape :math:`(N, C, H, W)`.</span>
+<span class="sd">        reduction: Specifies the reduction type:</span>
+<span class="sd">            ``&#39;none&#39;`` | ``&#39;mean&#39;`` | ``&#39;sum&#39;``. Default:``&#39;mean&#39;``</span>
+<span class="sd">        data_range: Maximum value range of images (usually 1.0 or 255).</span>
+<span class="sd">        dct_size: Size of blocks in 2D Discrete Cosine Transform. DCT sizes must be in (0, input size].</span>
+<span class="sd">        sigma_weight: STD of gaussian that determines the proportion of weight given to low freq and high freq.</span>
+<span class="sd">            Default: 1.55</span>
+<span class="sd">        kernel_size: Size of gaussian kernel for computing subband similarity. Kernels size must be in (0, input size].</span>
+<span class="sd">            Default: 3</span>
+<span class="sd">        sigma_similarity: STD of gaussian kernel for computing subband similarity. Default: 1.55</span>
+<span class="sd">        percentile: % in (0, 1] of the worst similarity scores which should be kept. Default: 0.05</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        DSS: Index of similarity between two images. In [0, 1] interval.</span>
+<span class="sd">    Note:</span>
+<span class="sd">        This implementation is based on the original MATLAB code (see header).</span>
+<span class="sd">        Image will be scaled to [0, 255] because all constants are computed for this range.</span>
+<span class="sd">        Make sure you know what you are doing when changing default coefficient values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sigma_weight</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">sigma_similarity</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Gaussian sigmas must not be 0, got sigma_weight: </span><span class="si">{</span><span class="n">sigma_weight</span><span class="si">}</span><span class="s1"> and &#39;</span>
+                         <span class="sa">f</span><span class="s1">&#39;sigma_similarity: </span><span class="si">{</span><span class="n">sigma_similarity</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">percentile</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">percentile</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Percentile must be in (0,1], got </span><span class="si">{</span><span class="n">percentile</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="n">_validate_input</span><span class="p">(</span><span class="n">tensors</span><span class="o">=</span><span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">],</span> <span class="n">dim_range</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">size</span> <span class="ow">in</span> <span class="p">(</span><span class="n">dct_size</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">size</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="nb">min</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;DCT and kernels sizes must be included in (0, input size]&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Rescale to [0, 255] range, because all constant are calculated for this factor</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">data_range</span><span class="p">))</span> <span class="o">*</span> <span class="mi">255</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">data_range</span><span class="p">))</span> <span class="o">*</span> <span class="mi">255</span>
+
+    <span class="n">num_channels</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Use luminance channel in case of RGB images (Y from YIQ or YCrCb)</span>
+    <span class="k">if</span> <span class="n">num_channels</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">x_lum</span> <span class="o">=</span> <span class="n">rgb2yiq</span><span class="p">(</span><span class="n">x</span><span class="p">)[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">y_lum</span> <span class="o">=</span> <span class="n">rgb2yiq</span><span class="p">(</span><span class="n">y</span><span class="p">)[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">x_lum</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="n">y_lum</span> <span class="o">=</span> <span class="n">y</span>
+
+    <span class="c1"># Crop images size to the closest multiplication of `dct_size`</span>
+    <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">x_lum</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">dct_size</span> <span class="o">*</span> <span class="p">(</span><span class="n">rows</span> <span class="o">//</span> <span class="n">dct_size</span><span class="p">)</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="n">dct_size</span> <span class="o">*</span> <span class="p">(</span><span class="n">cols</span> <span class="o">//</span> <span class="n">dct_size</span><span class="p">)</span>
+    <span class="n">x_lum</span> <span class="o">=</span> <span class="n">x_lum</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">:</span><span class="n">rows</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">cols</span><span class="p">]</span>
+    <span class="n">y_lum</span> <span class="o">=</span> <span class="n">y_lum</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">:</span><span class="n">rows</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">cols</span><span class="p">]</span>
+
+    <span class="c1"># Channel decomposition for both images by `dct_size`x`dct_size` 2D DCT</span>
+    <span class="n">dct_x</span> <span class="o">=</span> <span class="n">_dct_decomp</span><span class="p">(</span><span class="n">x_lum</span><span class="p">,</span> <span class="n">dct_size</span><span class="p">)</span>
+    <span class="n">dct_y</span> <span class="o">=</span> <span class="n">_dct_decomp</span><span class="p">(</span><span class="n">y_lum</span><span class="p">,</span> <span class="n">dct_size</span><span class="p">)</span>
+
+    <span class="c1"># Create a Gaussian window that will be used to weight subbands scores</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dct_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">weight</span> <span class="o">=</span> <span class="p">(</span><span class="n">coords</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">weight</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span> <span class="p">(</span><span class="n">weight</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">weight</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">sigma_weight</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">exp</span><span class="p">()</span>
+
+    <span class="c1"># Compute similarity between each subband in img1 and img2</span>
+    <span class="n">subband_sim_matrix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">dct_size</span><span class="p">,</span> <span class="n">dct_size</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">threshold</span> <span class="o">=</span> <span class="mf">1e-2</span>
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dct_size</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dct_size</span><span class="p">):</span>
+            <span class="n">first_term</span> <span class="o">=</span> <span class="p">(</span><span class="n">m</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># boolean</span>
+
+            <span class="c1"># Skip subbands with very small weight</span>
+            <span class="k">if</span> <span class="n">weight</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">:</span>
+                <span class="n">weight</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">continue</span>
+
+            <span class="n">subband_sim_matrix</span><span class="p">[:,</span> <span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">_subband_similarity</span><span class="p">(</span>
+                <span class="n">dct_x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">m</span><span class="p">::</span><span class="n">dct_size</span><span class="p">,</span> <span class="n">n</span><span class="p">::</span><span class="n">dct_size</span><span class="p">],</span>
+                <span class="n">dct_y</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">m</span><span class="p">::</span><span class="n">dct_size</span><span class="p">,</span> <span class="n">n</span><span class="p">::</span><span class="n">dct_size</span><span class="p">],</span>
+                <span class="n">first_term</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">sigma_similarity</span><span class="p">,</span> <span class="n">percentile</span><span class="p">)</span>
+
+    <span class="c1"># Weight subbands similarity scores</span>
+    <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span>
+    <span class="n">similarity_scores</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">subband_sim_matrix</span> <span class="o">*</span> <span class="p">(</span><span class="n">weight</span> <span class="o">/</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weight</span><span class="p">))</span> <span class="o">+</span> <span class="n">eps</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="n">dss_val</span> <span class="o">=</span> <span class="n">_reduce</span><span class="p">(</span><span class="n">similarity_scores</span><span class="p">,</span> <span class="n">reduction</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">dss_val</span>
+
+
+<span class="k">def</span> <span class="nf">_subband_similarity</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">first_term</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+                        <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
+                        <span class="n">percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute similarity between 2 subbands</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x: First input subband. Shape (N, 1, H, W).</span>
+<span class="sd">        y: Second input subband. Shape (N, 1, H, W).</span>
+<span class="sd">        first_term: whether this is is the first element of subband sim matrix to be calculated</span>
+<span class="sd">        kernel_size: Size of gaussian kernel for computing local variance. Kernels size must be in (0, input size].</span>
+<span class="sd">            Default: 3</span>
+<span class="sd">        sigma: STD of gaussian kernel for computing local variance. Default: 1.5</span>
+<span class="sd">        percentile: % in [0,1] of worst similarity scores which should be kept. Default: 0.05</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        DSS: Index of similarity between two images. In [0, 1] interval.</span>
+<span class="sd">    Note:</span>
+<span class="sd">        This implementation is based on the original MATLAB code (see header).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># `c` takes value of DC or AC coefficient depending on stage</span>
+    <span class="n">dc_coeff</span><span class="p">,</span> <span class="n">ac_coeff</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">dc_coeff</span> <span class="k">if</span> <span class="n">first_term</span> <span class="k">else</span> <span class="n">ac_coeff</span>
+
+    <span class="c1"># Compute local variance</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">gaussian_filter</span><span class="p">(</span><span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_size</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">)</span>
+    <span class="n">mu_x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="n">kernel_size</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">mu_y</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="n">kernel_size</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">sigma_xx</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">x</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="n">kernel_size</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">mu_x</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">sigma_yy</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">y</span> <span class="o">*</span> <span class="n">y</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="n">kernel_size</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">mu_y</span> <span class="o">**</span> <span class="mi">2</span>
+
+    <span class="n">sigma_xx</span><span class="p">[</span><span class="n">sigma_xx</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">sigma_yy</span><span class="p">[</span><span class="n">sigma_yy</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">left_term</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sigma_xx</span> <span class="o">*</span> <span class="n">sigma_yy</span><span class="p">)</span> <span class="o">+</span> <span class="n">c</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">sigma_xx</span> <span class="o">+</span> <span class="n">sigma_yy</span> <span class="o">+</span> <span class="n">c</span><span class="p">)</span>
+
+    <span class="c1"># Spatial pooling of worst scores</span>
+    <span class="n">percentile_index</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">percentile</span> <span class="o">*</span> <span class="p">(</span><span class="n">left_term</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">left_term</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+    <span class="n">sorted_left</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">left_term</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">start_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">similarity</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sorted_left</span><span class="p">[:,</span> <span class="p">:</span><span class="n">percentile_index</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># For DC, multiply by a right term</span>
+    <span class="k">if</span> <span class="n">first_term</span><span class="p">:</span>
+        <span class="n">sigma_xy</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="n">kernel_size</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">mu_x</span> <span class="o">*</span> <span class="n">mu_y</span>
+        <span class="n">right_term</span> <span class="o">=</span> <span class="p">((</span><span class="n">sigma_xy</span> <span class="o">+</span> <span class="n">c</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sigma_xx</span> <span class="o">*</span> <span class="n">sigma_yy</span><span class="p">)</span> <span class="o">+</span> <span class="n">c</span><span class="p">))</span>
+        <span class="n">sorted_right</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">right_term</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">start_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">similarity</span> <span class="o">*=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sorted_right</span><span class="p">[:,</span> <span class="p">:</span><span class="n">percentile_index</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">similarity</span>
+
+
+<span class="k">def</span> <span class="nf">_dct_matrix</span><span class="p">(</span><span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Computes the matrix coefficients for DCT transform using the following formula:</span>
+<span class="sd">    https://fr.mathworks.com/help/images/discrete-cosine-transform.html</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        size : size of DCT matrix to create.  (`size`, `size`)</span>
+<span class="sd">        device: target device for generation</span>
+<span class="sd">        dtype: target data type for generation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">size</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span>
+        <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">size</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+        <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="n">size</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">size</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span> <span class="o">*</span> <span class="n">q</span><span class="p">)),</span> <span class="mi">0</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_dct_decomp</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">dct_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot; Computes 2D Discrete Cosine Transform on 8x8 blocks of an image</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x: input image. Shape :math:`(N, 1, H, W)`.</span>
+<span class="sd">        dct_size: size of DCT performed. DCT size must be in (0, input size]. Default: 8</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        decomp: the result of DCT on NxN blocks of the image, same shape.</span>
+<span class="sd">    Note:</span>
+<span class="sd">        Inspired by https://gitlab.com/Queuecumber/torchjpeg</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+
+    <span class="c1"># make NxN blocks out of image</span>
+    <span class="n">blocks</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">unfold</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="n">dct_size</span><span class="p">,</span> <span class="n">dct_size</span><span class="p">),</span> <span class="n">stride</span><span class="o">=</span><span class="p">(</span><span class="n">dct_size</span><span class="p">,</span> <span class="n">dct_size</span><span class="p">))</span>  <span class="c1"># shape (1, NxN, block_num)</span>
+    <span class="n">blocks</span> <span class="o">=</span> <span class="n">blocks</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">blocks</span> <span class="o">=</span> <span class="n">blocks</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dct_size</span><span class="p">,</span> <span class="n">dct_size</span><span class="p">)</span>  <span class="c1"># shape (bs, 1, block_num, N, N)</span>
+
+    <span class="c1"># apply DCT transform</span>
+    <span class="n">coeffs</span> <span class="o">=</span> <span class="n">_dct_matrix</span><span class="p">(</span><span class="n">dct_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="n">blocks</span> <span class="o">=</span> <span class="n">coeffs</span> <span class="o">@</span> <span class="n">blocks</span> <span class="o">@</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">t</span><span class="p">()</span>  <span class="c1"># @ does operation on last 2 channels only</span>
+
+    <span class="c1"># Reconstruct image</span>
+    <span class="n">blocks</span> <span class="o">=</span> <span class="n">blocks</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dct_size</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">blocks</span> <span class="o">=</span> <span class="n">blocks</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">blocks</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">fold</span><span class="p">(</span><span class="n">blocks</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()[</span><span class="o">-</span><span class="mi">2</span><span class="p">:],</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="n">dct_size</span><span class="p">,</span> <span class="n">dct_size</span><span class="p">),</span> <span class="n">stride</span><span class="o">=</span><span class="p">(</span><span class="n">dct_size</span><span class="p">,</span> <span class="n">dct_size</span><span class="p">))</span>
+    <span class="n">decomp</span> <span class="o">=</span> <span class="n">blocks</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">decomp</span>
+
+
+<div class="viewcode-block" id="DSSLoss">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.DSSLoss">[docs]</a>
+<span class="k">class</span> <span class="nc">DSSLoss</span><span class="p">(</span><span class="n">_Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Creates a criterion that measures the DSS for input :math:`x` and target :math:`y`.</span>
+
+<span class="sd">    In order to be considered as a loss, value `1 - clip(DSS, min=0, max=1)` is returned. If you need DSS value,</span>
+<span class="sd">    use function `dss` instead.</span>
+
+<span class="sd">    Args:</span>
+
+<span class="sd">        reduction: Specifies the reduction type:</span>
+<span class="sd">            ``&#39;none&#39;`` | ``&#39;mean&#39;`` | ``&#39;sum&#39;``. Default:``&#39;mean&#39;``</span>
+<span class="sd">        data_range: Maximum value range of images (usually 1.0 or 255).</span>
+<span class="sd">        dct_size: Size of blocks in 2D Discrete Cosine Transform. DCT sizes must be in (0, input size].</span>
+<span class="sd">        sigma_weight: STD of gaussian that determines the proportion of weight given to low freq and high freq.</span>
+<span class="sd">            Default: 1.55</span>
+<span class="sd">        kernel_size: Size of gaussian kernel for computing subband similarity. Kernels size must be in (0, input size].</span>
+<span class="sd">            Default: 3</span>
+<span class="sd">        sigma_similarity: STD of gaussian kernel for computing subband similarity. Default: 1.5</span>
+<span class="sd">        percentile: % in (0,1] of worst similarity scores which should be kept. Default: 0.05</span>
+
+<span class="sd">    Shape:</span>
+<span class="sd">        - Input: Required to be 4D (N, C, H, W). RGB channel order for colour images.</span>
+<span class="sd">        - Target: Required to be 4D (N, C, H, W). RGB channel order for colour images.</span>
+
+<span class="sd">    Examples::</span>
+<span class="sd">        &gt;&gt;&gt; loss = DSSLoss()</span>
+<span class="sd">        &gt;&gt;&gt; prediction = torch.rand(3, 3, 256, 256, requires_grad=True)</span>
+<span class="sd">        &gt;&gt;&gt; target = torch.rand(3, 3, 256, 256)</span>
+<span class="sd">        &gt;&gt;&gt; output = loss(prediction, target)</span>
+<span class="sd">        &gt;&gt;&gt; output.backward()</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        https://sse.tongji.edu.cn/linzhang/ICIP12/ICIP-SR-SIM.pdf</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span>
+                 <span class="n">data_range</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">dct_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+                 <span class="n">sigma_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.55</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+                 <span class="n">sigma_similarity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span> <span class="n">percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_range</span> <span class="o">=</span> <span class="n">data_range</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reduction</span> <span class="o">=</span> <span class="n">reduction</span>
+
+        <span class="c1"># Save function with predefined parameters, rather than parameters themself</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dss</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+            <span class="n">dss</span><span class="p">,</span>
+            <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">,</span>
+            <span class="n">data_range</span><span class="o">=</span><span class="n">data_range</span><span class="p">,</span>
+            <span class="n">dct_size</span><span class="o">=</span><span class="n">dct_size</span><span class="p">,</span>
+            <span class="n">sigma_weight</span><span class="o">=</span><span class="n">sigma_weight</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_size</span><span class="p">,</span>
+            <span class="n">sigma_similarity</span><span class="o">=</span><span class="n">sigma_similarity</span><span class="p">,</span>
+            <span class="n">percentile</span><span class="o">=</span><span class="n">percentile</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="DSSLoss.forward">
+<a class="viewcode-back" href="../../olimp/evaluation/loss.html#olimp.evaluation.loss.piq.DSSLoss.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prediction</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Computation of DSS as a loss function.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            prediction: Tensor of prediction of the network.</span>
+<span class="sd">            target: Reference tensor.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Value of DSS loss to be minimized. 0 &lt;= DSS &lt;= 1.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># All checks are done inside dss function</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dss</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+
+        <span class="c1"># Make sure value to be in [0, 1] range and convert to loss</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">PyOlimp</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/processing.html">olimp.processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html">olimp.evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.chromaticity_difference">olimp.evaluation.loss.chromaticity_difference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.color_blindness_loss">olimp.evaluation.loss.color_blindness_loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.corr">olimp.evaluation.loss.corr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.flip">olimp.evaluation.loss.flip</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.lcn">olimp.evaluation.loss.lcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.mse">olimp.evaluation.loss.mse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.nrmse">olimp.evaluation.loss.nrmse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.piq">olimp.evaluation.loss.piq</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.psnr">olimp.evaluation.loss.psnr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.rms">olimp.evaluation.loss.rms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.s_oklab">olimp.evaluation.loss.s_oklab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.ssim">olimp.evaluation.loss.ssim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.stress">olimp.evaluation.loss.stress</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.vsi">olimp.evaluation.loss.vsi</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/simulate.html">olimp.simulate.color_blindness_distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/simulate.html#module-olimp.simulate.refraction_distortion">olimp.simulate.refraction_distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/basic.html">olimp.precompensation.basic.huang</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/analytics.html">olimp.precompensation.analytics.feng_xu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html">olimp.precompensation.optimization.bregman_jumbo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html#module-olimp.precompensation.optimization.global_tone_mapping">olimp.precompensation.optimization.global_tone_mapping</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html#module-olimp.precompensation.optimization.montalto">olimp.precompensation.optimization.montalto</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html#module-olimp.precompensation.optimization.tennenholtz_zachevsky">olimp.precompensation.optimization.tennenholtz_zachevsky</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/vae.html">olimp.precompensation.nn.models.vae</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/unetvae.html">olimp.precompensation.nn.models.unetvae</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/cvae.html">olimp.precompensation.nn.models.cvae</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/cvd_swin.html">olimp.precompensation.nn.models.cvd_swin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/dwdn.html">olimp.precompensation.nn.models.dwdn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/vdsr.html">olimp.precompensation.nn.models.vdsr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/unet_efficient_b0.html">olimp.precompensation.nn.models.unet_efficient_b0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/usrnet.html">olimp.precompensation.nn.models.usrnet</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, PyOlimp authors.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

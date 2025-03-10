@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>olimp.processing &#8212; PyOlimp 0.1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=1aa832ab" />
+    <script src="../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for olimp.processing</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+
+
+<div class="viewcode-block" id="resize_kernel">
+<a class="viewcode-back" href="../../olimp/processing.html#olimp.processing.resize_kernel">[docs]</a>
+<span class="k">def</span> <span class="nf">resize_kernel</span><span class="p">(</span>
+    <span class="n">kernel</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">target_size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Rescales kernel to `target_size`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">resized_kernel</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+        <span class="n">kernel</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">target_size</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span> <span class="n">align_corners</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">resized_kernel</span></div>
+
+
+
+<div class="viewcode-block" id="fft_conv">
+<a class="viewcode-back" href="../../olimp/processing.html#olimp.processing.fft_conv">[docs]</a>
+<span class="k">def</span> <span class="nf">fft_conv</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">kernel</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    FFT base method for fast convolution. Input types are expected to be</span>
+<span class="sd">    `float32` and size must be equal</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">image</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">image</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">assert</span> <span class="n">kernel</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">kernel</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">assert</span> <span class="p">(</span>
+        <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">==</span> <span class="n">kernel</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+    <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Expected equal shapes, got: image=</span><span class="si">{</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span><span class="si">}</span><span class="s2">, kernel=</span><span class="si">{</span><span class="n">kernel</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">real</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">image</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fft2</span><span class="p">(</span><span class="n">kernel</span><span class="p">))</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="scale_value">
+<a class="viewcode-back" href="../../olimp/processing.html#olimp.processing.scale_value">[docs]</a>
+<span class="k">def</span> <span class="nf">scale_value</span><span class="p">(</span>
+    <span class="n">arr</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">min_val</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">max_val</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Rescale values making minimum equal `min_val` and maximum equal `max_val`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">black</span><span class="p">,</span> <span class="n">white</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">arr</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">black</span> <span class="o">==</span> <span class="n">white</span><span class="p">:</span>
+        <span class="n">mul</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">if</span> <span class="n">min_val</span> <span class="o">&lt;=</span> <span class="n">black</span> <span class="o">&lt;=</span> <span class="n">max_val</span><span class="p">:</span>
+            <span class="n">add</span> <span class="o">=</span> <span class="n">black</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">add</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">min_val</span>
+                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">black</span> <span class="o">-</span> <span class="n">min_val</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">black</span> <span class="o">-</span> <span class="n">max_val</span><span class="p">)</span>
+                <span class="k">else</span> <span class="n">max_val</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mul</span> <span class="o">=</span> <span class="p">(</span><span class="n">max_val</span> <span class="o">-</span> <span class="n">min_val</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">white</span> <span class="o">-</span> <span class="n">black</span><span class="p">)</span>
+        <span class="n">add</span> <span class="o">=</span> <span class="o">-</span><span class="n">black</span> <span class="o">*</span> <span class="n">mul</span> <span class="o">+</span> <span class="n">min_val</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">mul</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">+=</span> <span class="n">add</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">PyOlimp</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/processing.html">olimp.processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html">olimp.evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.chromaticity_difference">olimp.evaluation.loss.chromaticity_difference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.color_blindness_loss">olimp.evaluation.loss.color_blindness_loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.corr">olimp.evaluation.loss.corr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.flip">olimp.evaluation.loss.flip</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.lcn">olimp.evaluation.loss.lcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.mse">olimp.evaluation.loss.mse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.nrmse">olimp.evaluation.loss.nrmse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.piq">olimp.evaluation.loss.piq</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.psnr">olimp.evaluation.loss.psnr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.rms">olimp.evaluation.loss.rms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.s_oklab">olimp.evaluation.loss.s_oklab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.ssim">olimp.evaluation.loss.ssim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.stress">olimp.evaluation.loss.stress</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/evaluation/loss.html#module-olimp.evaluation.loss.vsi">olimp.evaluation.loss.vsi</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/simulate.html">olimp.simulate.color_blindness_distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/simulate.html#module-olimp.simulate.refraction_distortion">olimp.simulate.refraction_distortion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/basic.html">olimp.precompensation.basic.huang</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/analytics.html">olimp.precompensation.analytics.feng_xu</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html">olimp.precompensation.optimization.bregman_jumbo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html#module-olimp.precompensation.optimization.global_tone_mapping">olimp.precompensation.optimization.global_tone_mapping</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html#module-olimp.precompensation.optimization.montalto">olimp.precompensation.optimization.montalto</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/optimization.html#module-olimp.precompensation.optimization.tennenholtz_zachevsky">olimp.precompensation.optimization.tennenholtz_zachevsky</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/vae.html">olimp.precompensation.nn.models.vae</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/unetvae.html">olimp.precompensation.nn.models.unetvae</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/cvae.html">olimp.precompensation.nn.models.cvae</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/cvd_swin.html">olimp.precompensation.nn.models.cvd_swin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/dwdn.html">olimp.precompensation.nn.models.dwdn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/vdsr.html">olimp.precompensation.nn.models.vdsr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/unet_efficient_b0.html">olimp.precompensation.nn.models.unet_efficient_b0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../olimp/precompensation/nn/models/usrnet.html">olimp.precompensation.nn.models.usrnet</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, PyOlimp authors.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
