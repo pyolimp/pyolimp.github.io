@@ -4,11 +4,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>olimp.evaluation.loss.s_oklab &#8212; PyOlimp 0.1.0 documentation</title>
+    <title>olimp.evaluation.loss.s_oklab &#8212; PyOlimp 0.1.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d1102ebc" />
-    <link rel="stylesheet" type="text/css" href="../../../../_static/alabaster.css?v=12dfc556" />
-    <script src="../../../../_static/documentation_options.js?v=01f34227"></script>
-    <script src="../../../../_static/doctools.js?v=888ff710"></script>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/alabaster.css?v=63888957" />
+    <script src="../../../../_static/documentation_options.js?v=a58bc63e"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
@@ -30,9 +31,7 @@
           <div class="body" role="main">
             
   <h1>Source code for olimp.evaluation.loss.s_oklab</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">ceil</span>
-
-<span class="kn">import</span> <span class="nn">torch</span>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">Module</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
@@ -42,26 +41,27 @@
 <span class="kn">from</span> <span class="nn">..cs.opponent</span> <span class="kn">import</span> <span class="n">Opponent</span>
 
 
-<span class="k">def</span> <span class="nf">srgb2opponent</span><span class="p">(</span><span class="n">srgb</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
-    <span class="n">srgb</span> <span class="o">=</span> <span class="n">sRGB</span><span class="p">()</span><span class="o">.</span><span class="n">to_XYZ</span><span class="p">(</span><span class="n">srgb</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">Opponent</span><span class="p">()</span><span class="o">.</span><span class="n">from_XYZ</span><span class="p">(</span><span class="n">srgb</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_srgb2opponent</span><span class="p">(</span><span class="n">srgb</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">Opponent</span><span class="p">()</span><span class="o">.</span><span class="n">from_XYZ</span><span class="p">(</span><span class="n">sRGB</span><span class="p">()</span><span class="o">.</span><span class="n">to_XYZ</span><span class="p">(</span><span class="n">srgb</span><span class="p">))</span>
 
 
-<span class="k">def</span> <span class="nf">opponent2oklab</span><span class="p">(</span><span class="n">oppo</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">Oklab</span><span class="p">()</span><span class="o">.</span><span class="n">from_XYZ</span><span class="p">(</span><span class="n">Opponent</span><span class="p">()</span><span class="o">.</span><span class="n">to_XYZ</span><span class="p">(</span><span class="n">oppo</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">_opponent2oklab</span><span class="p">(</span><span class="n">oppo</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">Oklab</span><span class="p">()</span><span class="o">.</span><span class="n">from_XYZ</span><span class="p">(</span><span class="n">Opponent</span><span class="p">()</span><span class="o">.</span><span class="n">to_XYZ</span><span class="p">(</span><span class="n">oppo</span><span class="p">)</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
 
 
-<span class="k">def</span> <span class="nf">create_gauss_kernel_2d</span><span class="p">(</span><span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_create_gauss_kernel_2d</span><span class="p">(</span><span class="n">sigma</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">weight</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">image_size</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">):</span>
     <span class="c1"># https://en.wikipedia.org/wiki/Gaussian_blur</span>
-    <span class="n">size</span> <span class="o">=</span> <span class="n">ceil</span><span class="p">(</span><span class="n">sigma</span> <span class="o">*</span> <span class="mf">3.5</span><span class="p">)</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">sigma</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">*</span> <span class="mf">3.5</span><span class="p">,</span> <span class="n">image_size</span><span class="p">))</span>
     <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
     <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">T</span>
-    <span class="n">gauss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span> <span class="o">*</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">sigma</span> <span class="o">*</span> <span class="n">sigma</span><span class="p">))</span>
-    <span class="n">gauss</span> <span class="o">*=</span> <span class="n">weight</span> <span class="o">/</span> <span class="n">gauss</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">gauss</span>
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="n">weight</span><span class="p">):</span>
+        <span class="n">gauss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span> <span class="o">*</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">s</span> <span class="o">*</span> <span class="n">s</span><span class="p">))</span>
+        <span class="n">kernel</span> <span class="o">+=</span> <span class="n">gauss</span> <span class="o">/</span> <span class="n">gauss</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">*</span> <span class="n">w</span>
+    <span class="k">return</span> <span class="n">kernel</span> <span class="o">/</span> <span class="n">kernel</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 
 
-<span class="k">def</span> <span class="nf">image_metric</span><span class="p">(</span>
+<span class="k">def</span> <span class="nf">_image_metric</span><span class="p">(</span>
     <span class="n">A_srgb</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
     <span class="n">B_srgb</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
     <span class="n">spacial_filters</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">],</span>
@@ -73,8 +73,8 @@
         <span class="k">for</span> <span class="n">sz</span> <span class="ow">in</span> <span class="nb">filter</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">sz</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;filter size must be odd (not </span><span class="si">{</span><span class="n">sz</span><span class="si">}</span><span class="s2">)&quot;</span>
 
-    <span class="n">A</span> <span class="o">=</span> <span class="n">srgb2opponent</span><span class="p">(</span><span class="n">A_srgb</span><span class="p">)</span>
-    <span class="n">B</span> <span class="o">=</span> <span class="n">srgb2opponent</span><span class="p">(</span><span class="n">B_srgb</span><span class="p">)</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">_srgb2opponent</span><span class="p">(</span><span class="n">A_srgb</span><span class="p">)</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">_srgb2opponent</span><span class="p">(</span><span class="n">B_srgb</span><span class="p">)</span>
 
     <span class="n">A_convolved</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
     <span class="n">B_convolved</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
@@ -84,13 +84,14 @@
             <span class="k">assert</span> <span class="n">w</span> <span class="o">==</span> <span class="n">h</span>
             <span class="n">sz</span> <span class="o">=</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span>  <span class="c1"># can be easily changed to support non square kernels</span>
             <span class="n">pad</span> <span class="o">=</span> <span class="n">sz</span>
-            <span class="n">img_dst</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ch_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span>
-                <span class="n">img_src</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ch_idx</span><span class="p">][</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="n">img_dst</span><span class="p">[</span><span class="n">ch_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span>
+                <span class="n">img_src</span><span class="p">[</span><span class="n">ch_idx</span><span class="p">][</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
                 <span class="n">kernel</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
                 <span class="n">padding</span><span class="o">=</span><span class="n">pad</span><span class="p">,</span>
             <span class="p">)</span>
-    <span class="n">A_metric_cs</span> <span class="o">=</span> <span class="n">opponent2oklab</span><span class="p">(</span><span class="n">A_convolved</span><span class="p">)</span>
-    <span class="n">B_metric_cs</span> <span class="o">=</span> <span class="n">opponent2oklab</span><span class="p">(</span><span class="n">B_convolved</span><span class="p">)</span>
+    <span class="n">A_metric_cs</span> <span class="o">=</span> <span class="n">_opponent2oklab</span><span class="p">(</span><span class="n">A_convolved</span><span class="p">)</span>
+    <span class="n">B_metric_cs</span> <span class="o">=</span> <span class="n">_opponent2oklab</span><span class="p">(</span><span class="n">B_convolved</span><span class="p">)</span>
+
     <span class="n">metric</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">A_metric_cs</span> <span class="o">-</span> <span class="n">B_metric_cs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">metric</span><span class="p">)</span>
@@ -99,31 +100,54 @@
 <div class="viewcode-block" id="SOkLab">
 <a class="viewcode-back" href="../../../../olimp/evaluation/loss.html#olimp.evaluation.loss.s_oklab.SOkLab">[docs]</a>
 <span class="k">class</span> <span class="nc">SOkLab</span><span class="p">(</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Code is based on:</span>
+<span class="sd">    https://github.com/iitpvisionlab/vsl_ial/blob/main/vsl_ial/image_metric.py</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dpi</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">distance_inch</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+
+        <span class="n">ppd</span> <span class="o">=</span> <span class="n">dpi</span> <span class="o">*</span> <span class="n">distance_inch</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">((</span><span class="mf">1.00327</span><span class="p">,</span> <span class="mf">0.11442</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.11769</span><span class="p">)),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">((</span><span class="mf">0.61672</span><span class="p">,</span> <span class="mf">0.38328</span><span class="p">)),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">((</span><span class="mf">0.56789</span><span class="p">,</span> <span class="mf">0.43211</span><span class="p">)),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">((</span><span class="mf">0.0283</span><span class="p">,</span> <span class="mf">0.133</span><span class="p">,</span> <span class="mf">4.336</span><span class="p">))</span> <span class="o">*</span> <span class="n">ppd</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">((</span><span class="mf">0.0392</span><span class="p">,</span> <span class="mf">0.494</span><span class="p">))</span> <span class="o">*</span> <span class="n">ppd</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">((</span><span class="mf">0.0536</span><span class="p">,</span> <span class="mf">0.386</span><span class="p">))</span> <span class="o">*</span> <span class="n">ppd</span><span class="p">,</span>
+        <span class="p">)</span>
+
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
-<div class="viewcode-block" id="SOkLab.forward">
-<a class="viewcode-back" href="../../../../olimp/evaluation/loss.html#olimp.evaluation.loss.s_oklab.SOkLab.forward">[docs]</a>
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img1</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">img2</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">img1</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="n">img1</span><span class="o">.</span><span class="n">shape</span>
-        <span class="k">assert</span> <span class="n">img2</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="n">img2</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image1</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">image2</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">image1</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="n">image1</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="n">image2</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="n">image2</span><span class="o">.</span><span class="n">shape</span>
 
-        <span class="k">assert</span> <span class="n">img1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
-        <span class="k">assert</span> <span class="n">img2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
-        <span class="n">s_oklab_values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">img1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
-        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">img1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-            <span class="n">s_oklab_values</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">image_metric</span><span class="p">(</span>
-                <span class="n">img1</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-                <span class="n">img2</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="k">assert</span> <span class="n">image1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="k">assert</span> <span class="n">image2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+
+        <span class="n">max_size</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">image1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]))</span>
+        <span class="n">s_oklab_values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">image1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">image1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">s_oklab_values</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_image_metric</span><span class="p">(</span>
+                <span class="n">image1</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
+                <span class="n">image2</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
                 <span class="p">(</span>
-                    <span class="n">create_gauss_kernel_2d</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
-                    <span class="n">create_gauss_kernel_2d</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
-                    <span class="n">create_gauss_kernel_2d</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
+                    <span class="n">_create_gauss_kernel_2d</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">max_size</span>
+                    <span class="p">),</span>
+                    <span class="n">_create_gauss_kernel_2d</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">max_size</span>
+                    <span class="p">),</span>
+                    <span class="n">_create_gauss_kernel_2d</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">max_size</span>
+                    <span class="p">),</span>
                 <span class="p">),</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">s_oklab_values</span></div>
-</div>
 
 </pre></div>
 
@@ -131,7 +155,7 @@
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="../../../../index.html">PyOlimp</a></h1>
 
@@ -142,11 +166,24 @@
 
 
 
-<h3>Navigation</h3>
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../olimp/processing.html">olimp.processing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../olimp/evaluation/loss.html">olimp.evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../olimp/dataset.html">Dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../olimp/evaluation/loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../olimp/processing.html">Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../olimp/simulate.html">Simulate</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../olimp/train_configuration.html">Train Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../olimp/precompensation/index.html">Precompensation</a></li>
 </ul>
 
 <div class="relations">
@@ -158,16 +195,6 @@
   </ul></li>
 </ul>
 </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -184,8 +211,8 @@
       &#169;2025, PyOlimp authors.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.2.6</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
     </div>
 
