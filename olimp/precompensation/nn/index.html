@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Models &mdash; PyOlimp 0.1.2 documentation</title>
+  <title>Models &mdash; PyOlimp 0.1.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=64240a9a" />
@@ -14,7 +14,7 @@
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=92734c54"></script>
+      <script src="../../../_static/documentation_options.js?v=360bc84d"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -58,7 +58,8 @@
 <li class="toctree-l3"><a class="reference internal" href="models/vae.html">olimp.precompensation.nn.models.vae</a></li>
 <li class="toctree-l3"><a class="reference internal" href="models/unetvae.html">olimp.precompensation.nn.models.unetvae</a></li>
 <li class="toctree-l3"><a class="reference internal" href="models/cvae.html">olimp.precompensation.nn.models.cvae</a></li>
-<li class="toctree-l3"><a class="reference internal" href="models/cvd_swin.html">olimp.precompensation.nn.models.cvd_swin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="models/cvd_swin.html">olimp.precompensation.nn.models.cvd_swin.cvd_swin_1channel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="models/cvd_swin.html#module-olimp.precompensation.nn.models.cvd_swin.cvd_swin_3channels">olimp.precompensation.nn.models.cvd_swin.cvd_swin_3channels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="models/dwdn.html">olimp.precompensation.nn.models.dwdn</a></li>
 <li class="toctree-l3"><a class="reference internal" href="models/vdsr.html">olimp.precompensation.nn.models.vdsr</a></li>
 <li class="toctree-l3"><a class="reference internal" href="models/unet_efficient_b0.html">olimp.precompensation.nn.models.unet_efficient_b0</a></li>
@@ -110,45 +111,12 @@
 <li class="toctree-l2"><a class="reference internal" href="models/cvae.html#olimp.precompensation.nn.models.cvae.CVAE"><code class="docutils literal notranslate"><span class="pre">CVAE</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="models/cvd_swin.html">olimp.precompensation.nn.models.cvd_swin</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.BasicLayer"><code class="docutils literal notranslate"><span class="pre">BasicLayer</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.BasicLayer.extra_repr"><code class="docutils literal notranslate"><span class="pre">BasicLayer.extra_repr()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="models/cvd_swin.html">olimp.precompensation.nn.models.cvd_swin.cvd_swin_1channel</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.cvd_swin_1channel.CVDSwin1Channel"><code class="docutils literal notranslate"><span class="pre">CVDSwin1Channel</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.Discriminator_transformer"><code class="docutils literal notranslate"><span class="pre">Discriminator_transformer</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.Discriminator_transformer2"><code class="docutils literal notranslate"><span class="pre">Discriminator_transformer2</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.Discriminator_transformer3"><code class="docutils literal notranslate"><span class="pre">Discriminator_transformer3</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.Mlp"><code class="docutils literal notranslate"><span class="pre">Mlp</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.PatchEmbed"><code class="docutils literal notranslate"><span class="pre">PatchEmbed</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.PatchMerging"><code class="docutils literal notranslate"><span class="pre">PatchMerging</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.PatchMerging.extra_repr"><code class="docutils literal notranslate"><span class="pre">PatchMerging.extra_repr()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.PatchMerging_cnn"><code class="docutils literal notranslate"><span class="pre">PatchMerging_cnn</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.PatchMerging_cnn.extra_repr"><code class="docutils literal notranslate"><span class="pre">PatchMerging_cnn.extra_repr()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.PatchMerging_scale"><code class="docutils literal notranslate"><span class="pre">PatchMerging_scale</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.SwinTransformer"><code class="docutils literal notranslate"><span class="pre">SwinTransformer</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.SwinTransformerBlock"><code class="docutils literal notranslate"><span class="pre">SwinTransformerBlock</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.SwinTransformerBlock.extra_repr"><code class="docutils literal notranslate"><span class="pre">SwinTransformerBlock.extra_repr()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.Upsample"><code class="docutils literal notranslate"><span class="pre">Upsample</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.Upsample_cnn"><code class="docutils literal notranslate"><span class="pre">Upsample_cnn</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.Upsample_layer"><code class="docutils literal notranslate"><span class="pre">Upsample_layer</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.Upsample_promotion"><code class="docutils literal notranslate"><span class="pre">Upsample_promotion</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.Upsample_promotion_cnn"><code class="docutils literal notranslate"><span class="pre">Upsample_promotion_cnn</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.Upsample_promotion_interpolate"><code class="docutils literal notranslate"><span class="pre">Upsample_promotion_interpolate</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.WindowAttention"><code class="docutils literal notranslate"><span class="pre">WindowAttention</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.WindowAttention.extra_repr"><code class="docutils literal notranslate"><span class="pre">WindowAttention.extra_repr()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.my_cnn"><code class="docutils literal notranslate"><span class="pre">my_cnn</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.my_cnn_multi"><code class="docutils literal notranslate"><span class="pre">my_cnn_multi</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.resi_connection_layer"><code class="docutils literal notranslate"><span class="pre">resi_connection_layer</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.window_partition"><code class="docutils literal notranslate"><span class="pre">window_partition()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.window_reverse"><code class="docutils literal notranslate"><span class="pre">window_reverse()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="models/cvd_swin.html#module-olimp.precompensation.nn.models.cvd_swin.cvd_swin_3channels">olimp.precompensation.nn.models.cvd_swin.cvd_swin_3channels</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="models/cvd_swin.html#olimp.precompensation.nn.models.cvd_swin.cvd_swin_3channels.CVDSwin3Channels"><code class="docutils literal notranslate"><span class="pre">CVDSwin3Channels</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="models/dwdn.html">olimp.precompensation.nn.models.dwdn</a><ul>
@@ -156,7 +124,6 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="models/vdsr.html">olimp.precompensation.nn.models.vdsr</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="models/vdsr.html#olimp.precompensation.nn.models.vdsr.ConvReLU"><code class="docutils literal notranslate"><span class="pre">ConvReLU</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="models/vdsr.html#olimp.precompensation.nn.models.vdsr.VDSR"><code class="docutils literal notranslate"><span class="pre">VDSR</span></code></a></li>
 </ul>
 </li>

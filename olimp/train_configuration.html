@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Train Configuration &mdash; PyOlimp 0.1.2 documentation</title>
+  <title>Train Configuration &mdash; PyOlimp 0.1.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=64240a9a" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=92734c54"></script>
+      <script src="../_static/documentation_options.js?v=360bc84d"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/js/theme.js"></script>
@@ -93,13 +93,13 @@
 </tr>
 <tr class="row-odd"><td colspan="7"><p>properties</p></td>
 </tr>
-<tr class="row-even"><td rowspan="9"><ul class="simple">
+<tr class="row-even"><td rowspan="22"><ul class="simple">
 <li><p><strong>model</strong></p></li>
 </ul>
 </td>
 <td colspan="6"><p><em>Model</em></p></td>
 </tr>
-<tr class="row-odd"><td rowspan="8"><p>oneOf</p></td>
+<tr class="row-odd"><td rowspan="21"><p>oneOf</p></td>
 <td colspan="5"><p><span class="xref std std-ref">#/$defs/VDSR</span></p></td>
 </tr>
 <tr class="row-even"><td colspan="5"><p><span class="xref std std-ref">#/$defs/VAE</span></p></td>
@@ -114,153 +114,181 @@
 </tr>
 <tr class="row-odd"><td colspan="5"><p><span class="xref std std-ref">#/$defs/PrecompensationDWDN</span></p></td>
 </tr>
-<tr class="row-even"><td colspan="5"><p><span class="xref std std-ref">#/$defs/Generator_transformer_pathch4_844_48_3_nouplayer_server5</span></p></td>
+<tr class="row-even"><td colspan="5"><p><span class="xref std std-ref">#/$defs/CVDSwin3Channels</span></p></td>
 </tr>
-<tr class="row-odd"><td><ul class="simple">
+<tr class="row-odd"><td colspan="5"><p><span class="xref std std-ref">#/$defs/CVDSwin1Channel</span></p></td>
+</tr>
+<tr class="row-even"><td colspan="5"><p><span class="xref std std-ref">#/$defs/Generator_transformer_pathch4_8421_48_3_nouplayer_server5</span></p></td>
+</tr>
+<tr class="row-odd"><td colspan="5"><p><span class="xref std std-ref">#/$defs/Generator_transformer_pathch4_844_48_3_server5</span></p></td>
+</tr>
+<tr class="row-even"><td colspan="5"><p><span class="xref std std-ref">#/$defs/Generator_transformer_pathch4_844_48_3</span></p></td>
+</tr>
+<tr class="row-odd"><td colspan="5"><p><span class="xref std std-ref">#/$defs/Generator_transformer_pathch4_844_48_3_nouplayer_server5</span></p></td>
+</tr>
+<tr class="row-even"><td colspan="5"><p><span class="xref std std-ref">#/$defs/Generator_transformer_pathch4_844_48_3_nouplayer_server5_no_normalizaiton</span></p></td>
+</tr>
+<tr class="row-odd"><td colspan="5"><p><span class="xref std std-ref">#/$defs/Generator_transformer_pathch4_8_3_48_3</span></p></td>
+</tr>
+<tr class="row-even"><td colspan="5"><p><span class="xref std std-ref">#/$defs/Generator_transformer_pathch4_6_3_48_3</span></p></td>
+</tr>
+<tr class="row-odd"><td colspan="5"><p><span class="xref std std-ref">#/$defs/Generator_transformer_pathch4_1_1</span></p></td>
+</tr>
+<tr class="row-even"><td colspan="5"><p><span class="xref std std-ref">#/$defs/Generator_transformer_pathch2</span></p></td>
+</tr>
+<tr class="row-odd"><td colspan="5"><p><span class="xref std std-ref">#/$defs/Generator_cnn_pathch4_844_48_3_nouplayer_server5</span></p></td>
+</tr>
+<tr class="row-even"><td colspan="5"><p><span class="xref std std-ref">#/$defs/Generator_transformer_pathch2_1_1</span></p></td>
+</tr>
+<tr class="row-odd"><td colspan="5"><p><span class="xref std std-ref">#/$defs/Generator_transformer_pathch2_no_Unt</span></p></td>
+</tr>
+<tr class="row-even"><td><ul class="simple">
 <li><p><strong>img</strong></p></li>
 </ul>
 </td>
 <td colspan="6"><p><span class="xref std std-ref">#/$defs/ImgDataloaderConfig</span></p></td>
 </tr>
-<tr class="row-even"><td rowspan="4"><ul class="simple">
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
 <li><p><strong>distortion</strong></p></li>
 </ul>
 </td>
 <td colspan="6"><p><em>Distortion</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>type</p></td>
+<tr class="row-even"><td><p>type</p></td>
 <td colspan="5"><p><em>array</em></p></td>
 </tr>
-<tr class="row-even"><td rowspan="2"><p>items</p></td>
+<tr class="row-odd"><td rowspan="2"><p>items</p></td>
 <td rowspan="2"><p>oneOf</p></td>
 <td colspan="4"><p><span class="xref std std-ref">#/$defs/RefractionDistortionConfig</span></p></td>
 </tr>
-<tr class="row-odd"><td colspan="4"><p><span class="xref std std-ref">#/$defs/ColorBlindnessDistortionConfig</span></p></td>
+<tr class="row-even"><td colspan="4"><p><span class="xref std std-ref">#/$defs/ColorBlindnessDistortionConfig</span></p></td>
 </tr>
-<tr class="row-even"><td rowspan="3"><ul class="simple">
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
 <li><p>random_seed</p></li>
 </ul>
 </td>
 <td colspan="6"><p><em>Random Seed</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>type</p></td>
+<tr class="row-even"><td><p>type</p></td>
 <td colspan="5"><p><em>integer</em></p></td>
 </tr>
-<tr class="row-even"><td><p>default</p></td>
+<tr class="row-odd"><td><p>default</p></td>
 <td colspan="5"><p>47</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<tr class="row-even"><td rowspan="3"><ul class="simple">
 <li><p>batch_size</p></li>
 </ul>
 </td>
 <td colspan="6"><p><em>Batch Size</em></p></td>
 </tr>
-<tr class="row-even"><td><p>type</p></td>
+<tr class="row-odd"><td><p>type</p></td>
 <td colspan="5"><p><em>integer</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>default</p></td>
+<tr class="row-even"><td><p>default</p></td>
 <td colspan="5"><p>1</p></td>
 </tr>
-<tr class="row-even"><td rowspan="4"><ul class="simple">
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
 <li><p>sample_size</p></li>
 </ul>
 </td>
 <td colspan="6"><p><em>Sample Size</em></p></td>
 </tr>
-<tr class="row-odd"><td colspan="6"><p>Number of items for one epoch</p></td>
+<tr class="row-even"><td colspan="6"><p>Number of items for one epoch</p></td>
 </tr>
-<tr class="row-even"><td><p>type</p></td>
+<tr class="row-odd"><td><p>type</p></td>
 <td colspan="5"><p><em>integer</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>default</p></td>
+<tr class="row-even"><td><p>default</p></td>
 <td colspan="5"><p>1000</p></td>
 </tr>
-<tr class="row-even"><td rowspan="3"><ul class="simple">
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
 <li><p>train_frac</p></li>
 </ul>
 </td>
 <td colspan="6"><p><em>Train Frac</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>type</p></td>
+<tr class="row-even"><td><p>type</p></td>
 <td colspan="5"><p><em>number</em></p></td>
 </tr>
-<tr class="row-even"><td><p>default</p></td>
+<tr class="row-odd"><td><p>default</p></td>
 <td colspan="5"><p>0.8</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<tr class="row-even"><td rowspan="3"><ul class="simple">
 <li><p>validation_frac</p></li>
 </ul>
 </td>
 <td colspan="6"><p><em>Validation Frac</em></p></td>
 </tr>
-<tr class="row-even"><td><p>type</p></td>
+<tr class="row-odd"><td><p>type</p></td>
 <td colspan="5"><p><em>number</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>default</p></td>
+<tr class="row-even"><td><p>default</p></td>
 <td colspan="5"><p>0.2</p></td>
 </tr>
-<tr class="row-even"><td rowspan="5"><ul class="simple">
+<tr class="row-odd"><td rowspan="5"><ul class="simple">
 <li><p>epoch_dir</p></li>
 </ul>
 </td>
 <td colspan="6"><p><em>Epoch Dir</em></p></td>
 </tr>
-<tr class="row-odd"><td colspan="6"><p>Where to save .pth files</p></td>
+<tr class="row-even"><td colspan="6"><p>Where to save .pth files</p></td>
 </tr>
-<tr class="row-even"><td><p>type</p></td>
+<tr class="row-odd"><td><p>type</p></td>
 <td colspan="5"><p><em>string</em></p></td>
 </tr>
-<tr class="row-odd"><td><p>default</p></td>
+<tr class="row-even"><td><p>default</p></td>
 <td colspan="5"><p>epoch_saved</p></td>
 </tr>
-<tr class="row-even"><td><p>format</p></td>
+<tr class="row-odd"><td><p>format</p></td>
 <td colspan="5"><p>path</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<tr class="row-even"><td rowspan="6"><ul class="simple">
 <li><p>optimizer</p></li>
 </ul>
 </td>
 <td colspan="6"><p><em>Optimizer</em></p></td>
 </tr>
-<tr class="row-even"><td rowspan="3"><p>default</p></td>
+<tr class="row-odd"><td rowspan="3"><p>default</p></td>
 <td><p>name</p></td>
 <td colspan="4"><p>Adam</p></td>
 </tr>
-<tr class="row-odd"><td><p>learning_rate</p></td>
+<tr class="row-even"><td><p>learning_rate</p></td>
 <td colspan="4"><p>1e-05</p></td>
 </tr>
-<tr class="row-even"><td><p>eps</p></td>
+<tr class="row-odd"><td><p>eps</p></td>
 <td colspan="4"><p>1e-08</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="2"><p>oneOf</p></td>
+<tr class="row-even"><td rowspan="2"><p>oneOf</p></td>
 <td colspan="5"><p><span class="xref std std-ref">#/$defs/AdamConfig</span></p></td>
 </tr>
-<tr class="row-even"><td colspan="5"><p><span class="xref std std-ref">#/$defs/SGDConfig</span></p></td>
+<tr class="row-odd"><td colspan="5"><p><span class="xref std std-ref">#/$defs/SGDConfig</span></p></td>
 </tr>
-<tr class="row-odd"><td rowspan="4"><ul class="simple">
+<tr class="row-even"><td rowspan="4"><ul class="simple">
 <li><p>epochs</p></li>
 </ul>
 </td>
 <td colspan="6"><p><em>Epochs</em></p></td>
 </tr>
-<tr class="row-even"><td colspan="6"><p>Maximal number of epochs to run</p></td>
+<tr class="row-odd"><td colspan="6"><p>Maximal number of epochs to run</p></td>
 </tr>
-<tr class="row-odd"><td><p>type</p></td>
+<tr class="row-even"><td><p>type</p></td>
 <td colspan="5"><p><em>integer</em></p></td>
 </tr>
-<tr class="row-even"><td><p>default</p></td>
+<tr class="row-odd"><td><p>default</p></td>
 <td colspan="5"><p>50</p></td>
 </tr>
-<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<tr class="row-even"><td rowspan="7"><ul class="simple">
 <li><p><strong>loss_function</strong></p></li>
 </ul>
 </td>
 <td colspan="6"><p><em>Loss Function</em></p></td>
 </tr>
-<tr class="row-even"><td rowspan="5"><p>oneOf</p></td>
+<tr class="row-odd"><td rowspan="6"><p>oneOf</p></td>
 <td colspan="5"><p><span class="xref std std-ref">#/$defs/VaeLossFunction</span></p></td>
 </tr>
-<tr class="row-odd"><td colspan="5"><p><span class="xref std std-ref">#/$defs/ColorBlindnessLossFunction</span></p></td>
+<tr class="row-even"><td colspan="5"><p><span class="xref std std-ref">#/$defs/ChromaticityDifferenceLossFunction</span></p></td>
+</tr>
+<tr class="row-odd"><td colspan="5"><p><span class="xref std std-ref">#/$defs/CVDSwinLossFunction</span></p></td>
 </tr>
 <tr class="row-even"><td colspan="5"><p><span class="xref std std-ref">#/$defs/MultiScaleSSIMLossFunction</span></p></td>
 </tr>
@@ -448,10 +476,10 @@
 <td colspan="5"><p>False</p></td>
 </tr>
 <tr class="row-even"><td rowspan="13"><ul class="simple">
-<li><p>ChoiceParams</p></li>
+<li><p>CVDSwin1Channel</p></li>
 </ul>
 </td>
-<td colspan="6"><p><em>ChoiceParams</em></p></td>
+<td colspan="6"><p><em>CVDSwin1Channel</em></p></td>
 </tr>
 <tr class="row-odd"><td><p>type</p></td>
 <td colspan="5"><p><em>object</em></p></td>
@@ -468,251 +496,37 @@
 <td colspan="4"><p><em>string</em></p></td>
 </tr>
 <tr class="row-odd"><td><p>const</p></td>
-<td colspan="4"><p>choice</p></td>
+<td colspan="4"><p>cvd_swin_1channel</p></td>
 </tr>
-<tr class="row-even"><td rowspan="7"><ul class="simple">
-<li><p>values</p></li>
+<tr class="row-even"><td rowspan="6"><ul class="simple">
+<li><p>path</p></li>
 </ul>
 </td>
-<td colspan="5"><p><em>Values</em></p></td>
+<td colspan="5"><p><em>Path</em></p></td>
 </tr>
-<tr class="row-odd"><td rowspan="6"><p>anyOf</p></td>
-<td><p>type</p></td>
-<td colspan="3"><p><em>array</em></p></td>
+<tr class="row-odd"><td rowspan="2"><p>examples</p></td>
+<td colspan="4"><p>hf://RVI/cvd_swin_1channel.pth</p></td>
 </tr>
-<tr class="row-even"><td><p>items</p></td>
-<td><p>type</p></td>
-<td colspan="2"><p><em>number</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>type</p></td>
-<td colspan="3"><p><em>array</em></p></td>
-</tr>
-<tr class="row-even"><td rowspan="3"><p>items</p></td>
-<td><p>type</p></td>
-<td colspan="2"><p><em>array</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>maxItems</p></td>
-<td colspan="2"><p>2</p></td>
-</tr>
-<tr class="row-even"><td><p>minItems</p></td>
-<td colspan="2"><p>2</p></td>
-</tr>
-<tr class="row-odd"><td rowspan="10"><ul class="simple">
-<li><p>ColorBlindnessDistortionConfig</p></li>
-</ul>
-</td>
-<td colspan="6"><p><em>ColorBlindnessDistortionConfig</em></p></td>
-</tr>
-<tr class="row-even"><td><p>type</p></td>
-<td colspan="5"><p><em>object</em></p></td>
-</tr>
-<tr class="row-odd"><td colspan="6"><p>properties</p></td>
-</tr>
-<tr class="row-even"><td rowspan="3"><ul class="simple">
-<li><p><strong>name</strong></p></li>
-</ul>
-</td>
-<td colspan="5"><p><em>Name</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>type</p></td>
-<td colspan="4"><p><em>string</em></p></td>
-</tr>
-<tr class="row-even"><td><p>const</p></td>
-<td colspan="4"><p>cvd</p></td>
-</tr>
-<tr class="row-odd"><td rowspan="3"><ul class="simple">
-<li><p><strong>blindness_type</strong></p></li>
-</ul>
-</td>
-<td colspan="5"><p><em>Blindness Type</em></p></td>
-</tr>
-<tr class="row-even"><td><p>type</p></td>
-<td colspan="4"><p><em>string</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>enum</p></td>
-<td colspan="4"><p>deutan, protan</p></td>
-</tr>
-<tr class="row-even"><td><p>additionalProperties</p></td>
-<td colspan="5"><p>False</p></td>
-</tr>
-<tr class="row-odd"><td rowspan="17"><ul class="simple">
-<li><p>ColorBlindnessLossFunction</p></li>
-</ul>
-</td>
-<td colspan="6"><p><em>ColorBlindnessLossFunction</em></p></td>
-</tr>
-<tr class="row-even"><td><p>type</p></td>
-<td colspan="5"><p><em>object</em></p></td>
-</tr>
-<tr class="row-odd"><td colspan="6"><p>properties</p></td>
-</tr>
-<tr class="row-even"><td rowspan="3"><ul class="simple">
-<li><p><strong>name</strong></p></li>
-</ul>
-</td>
-<td colspan="5"><p><em>Name</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>type</p></td>
-<td colspan="4"><p><em>string</em></p></td>
-</tr>
-<tr class="row-even"><td><p>const</p></td>
-<td colspan="4"><p>ColorBlindnessLoss</p></td>
-</tr>
-<tr class="row-odd"><td rowspan="4"><ul class="simple">
-<li><p>degree</p></li>
-</ul>
-</td>
-<td colspan="5"><p><em>Degree</em></p></td>
-</tr>
-<tr class="row-even"><td><p>type</p></td>
-<td colspan="4"><p><em>integer</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>enum</p></td>
-<td colspan="4"><p>10, 20, 30, 40, 50, 60, 70, 80, 90, 100</p></td>
-</tr>
-<tr class="row-even"><td><p>default</p></td>
-<td colspan="4"><p>100</p></td>
-</tr>
-<tr class="row-odd"><td rowspan="3"><ul class="simple">
-<li><p>lambda_ssim</p></li>
-</ul>
-</td>
-<td colspan="5"><p><em>Lambda Ssim</em></p></td>
-</tr>
-<tr class="row-even"><td><p>type</p></td>
-<td colspan="4"><p><em>number</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>default</p></td>
-<td colspan="4"><p>0.25</p></td>
-</tr>
-<tr class="row-even"><td rowspan="3"><ul class="simple">
-<li><p>global_points</p></li>
-</ul>
-</td>
-<td colspan="5"><p><em>Global Points</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>type</p></td>
-<td colspan="4"><p><em>integer</em></p></td>
-</tr>
-<tr class="row-even"><td><p>default</p></td>
-<td colspan="4"><p>3000</p></td>
-</tr>
-<tr class="row-odd"><td><p>additionalProperties</p></td>
-<td colspan="5"><p>False</p></td>
-</tr>
-<tr class="row-even"><td rowspan="8"><ul class="simple">
-<li><p>ConstantParams</p></li>
-</ul>
-</td>
-<td colspan="6"><p><em>ConstantParams</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>type</p></td>
-<td colspan="5"><p><em>object</em></p></td>
-</tr>
-<tr class="row-even"><td colspan="6"><p>properties</p></td>
-</tr>
-<tr class="row-odd"><td rowspan="3"><ul class="simple">
-<li><p><strong>name</strong></p></li>
-</ul>
-</td>
-<td colspan="5"><p><em>Name</em></p></td>
-</tr>
-<tr class="row-even"><td><p>type</p></td>
-<td colspan="4"><p><em>string</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>const</p></td>
-<td colspan="4"><p>constant</p></td>
-</tr>
-<tr class="row-even"><td rowspan="2"><ul class="simple">
-<li><p>value</p></li>
-</ul>
-</td>
-<td colspan="5"><p><em>Value</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>type</p></td>
-<td colspan="4"><p><em>number</em></p></td>
-</tr>
-<tr class="row-even"><td rowspan="21"><ul class="simple">
-<li><p>Directory</p></li>
-</ul>
-</td>
-<td colspan="6"><p><em>Directory</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>type</p></td>
-<td colspan="5"><p><em>object</em></p></td>
-</tr>
-<tr class="row-even"><td colspan="6"><p>properties</p></td>
-</tr>
-<tr class="row-odd"><td rowspan="5"><ul class="simple">
-<li><p>limit</p></li>
-</ul>
-</td>
-<td colspan="5"><p><em>Limit</em></p></td>
-</tr>
-<tr class="row-even"><td colspan="5"><p>Load dataset, but only take first N images</p></td>
+<tr class="row-even"><td colspan="4"><p>~/.weights/cvd_swin_1channel.pth</p></td>
 </tr>
 <tr class="row-odd"><td><p>default</p></td>
 <td colspan="4"><p>null</p></td>
 </tr>
 <tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
 <td><p>type</p></td>
-<td colspan="3"><p><em>integer</em></p></td>
+<td colspan="3"><p><em>string</em></p></td>
 </tr>
 <tr class="row-odd"><td><p>type</p></td>
 <td colspan="3"><p><em>null</em></p></td>
-</tr>
-<tr class="row-even"><td rowspan="3"><ul class="simple">
-<li><p><strong>name</strong></p></li>
-</ul>
-</td>
-<td colspan="5"><p><em>Name</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>type</p></td>
-<td colspan="4"><p><em>string</em></p></td>
-</tr>
-<tr class="row-even"><td><p>const</p></td>
-<td colspan="4"><p>Directory</p></td>
-</tr>
-<tr class="row-odd"><td rowspan="3"><ul class="simple">
-<li><p><strong>path</strong></p></li>
-</ul>
-</td>
-<td colspan="5"><p><em>Path</em></p></td>
-</tr>
-<tr class="row-even"><td><p>type</p></td>
-<td colspan="4"><p><em>string</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>format</p></td>
-<td colspan="4"><p>path</p></td>
-</tr>
-<tr class="row-even"><td rowspan="6"><ul class="simple">
-<li><p>matches</p></li>
-</ul>
-</td>
-<td colspan="5"><p><em>Matches</em></p></td>
-</tr>
-<tr class="row-odd"><td><p>type</p></td>
-<td colspan="4"><p><em>array</em></p></td>
-</tr>
-<tr class="row-even"><td rowspan="3"><p>default</p></td>
-<td colspan="4"><p>*.jpg</p></td>
-</tr>
-<tr class="row-odd"><td colspan="4"><p>*.jpeg</p></td>
-</tr>
-<tr class="row-even"><td colspan="4"><p>*.png</p></td>
-</tr>
-<tr class="row-odd"><td><p>items</p></td>
-<td><p>type</p></td>
-<td colspan="3"><p><em>string</em></p></td>
 </tr>
 <tr class="row-even"><td><p>additionalProperties</p></td>
 <td colspan="5"><p>False</p></td>
 </tr>
 <tr class="row-odd"><td rowspan="13"><ul class="simple">
-<li><p>Generator_transformer_pathch4_844_48_3_nouplayer_server5</p></li>
+<li><p>CVDSwin3Channels</p></li>
 </ul>
 </td>
-<td colspan="6"><p><em>Generator_transformer_pathch4_844_48_3_nouplayer_server5</em></p></td>
+<td colspan="6"><p><em>CVDSwin3Channels</em></p></td>
 </tr>
 <tr class="row-even"><td><p>type</p></td>
 <td colspan="5"><p><em>object</em></p></td>
@@ -729,7 +543,903 @@
 <td colspan="4"><p><em>string</em></p></td>
 </tr>
 <tr class="row-even"><td><p>const</p></td>
+<td colspan="4"><p>cvd_swin_3channels</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p>path</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Path</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>examples</p></td>
+<td colspan="4"><p>hf://RVI/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-odd"><td colspan="4"><p>~/.weights/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-even"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-even"><td rowspan="13"><ul class="simple">
+<li><p>CVDSwinLossFunction</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>CVDSwinLossFunction</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>const</p></td>
+<td colspan="4"><p>CVDSwinLoss</p></td>
+</tr>
+<tr class="row-even"><td rowspan="3"><ul class="simple">
+<li><p>lambda_ssim</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Lambda Ssim</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="4"><p><em>number</em></p></td>
+</tr>
+<tr class="row-even"><td><p>default</p></td>
+<td colspan="4"><p>0.25</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<li><p>global_points</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Global Points</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>integer</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>default</p></td>
+<td colspan="4"><p>3000</p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="13"><ul class="simple">
+<li><p>ChoiceParams</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>ChoiceParams</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-even"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>const</p></td>
+<td colspan="4"><p>choice</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="7"><ul class="simple">
+<li><p>values</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Values</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="6"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>array</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>items</p></td>
+<td><p>type</p></td>
+<td colspan="2"><p><em>number</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="3"><p><em>array</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><p>items</p></td>
+<td><p>type</p></td>
+<td colspan="2"><p><em>array</em></p></td>
+</tr>
+<tr class="row-even"><td><p>maxItems</p></td>
+<td colspan="2"><p>2</p></td>
+</tr>
+<tr class="row-odd"><td><p>minItems</p></td>
+<td colspan="2"><p>2</p></td>
+</tr>
+<tr class="row-even"><td rowspan="14"><ul class="simple">
+<li><p>ChromaticityDifferenceLossFunction</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>ChromaticityDifferenceLossFunction</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>const</p></td>
+<td colspan="4"><p>ChromaticityDifference</p></td>
+</tr>
+<tr class="row-even"><td rowspan="3"><ul class="simple">
+<li><p><strong>color_space</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Color Space</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>enum</p></td>
+<td colspan="4"><p>lab, prolab</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><ul class="simple">
+<li><p>mode</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Mode</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>enum</p></td>
+<td colspan="4"><p>normal-color-vision, color-vision-deficiency</p></td>
+</tr>
+<tr class="row-even"><td><p>default</p></td>
+<td colspan="4"><p>normal-color-vision</p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-even"><td rowspan="21"><ul class="simple">
+<li><p>ColorBlindnessDistortionConfig</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>ColorBlindnessDistortionConfig</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>const</p></td>
+<td colspan="4"><p>cvd</p></td>
+</tr>
+<tr class="row-even"><td rowspan="5"><ul class="simple">
+<li><p>blindness_type</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Blindness Type</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-even"><td rowspan="3"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>enum</p></td>
+<td colspan="3"><p>deutan, protan, tritan</p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="9"><ul class="simple">
+<li><p>hue_angle_deg</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Hue Angle Deg</em></p></td>
+</tr>
+<tr class="row-even"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="7"><p>anyOf</p></td>
+<td colspan="4"><p><span class="xref std std-ref">#/$defs/UniformParams</span></p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p><span class="xref std std-ref">#/$defs/TruncnormParams</span></p></td>
+</tr>
+<tr class="row-odd"><td colspan="4"><p><span class="xref std std-ref">#/$defs/ConstantParams</span></p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p><span class="xref std std-ref">#/$defs/RandrangeParams</span></p></td>
+</tr>
+<tr class="row-odd"><td colspan="4"><p><span class="xref std std-ref">#/$defs/ChoiceParams</span></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="3"><p><em>number</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="8"><ul class="simple">
+<li><p>ConstantParams</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>ConstantParams</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-even"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>const</p></td>
+<td colspan="4"><p>constant</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><ul class="simple">
+<li><p>value</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Value</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>number</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="21"><ul class="simple">
+<li><p>Directory</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>Directory</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-even"><td rowspan="5"><ul class="simple">
+<li><p>limit</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Limit</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="5"><p>Load dataset, but only take first N images</p></td>
+</tr>
+<tr class="row-even"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>integer</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>const</p></td>
+<td colspan="4"><p>Directory</p></td>
+</tr>
+<tr class="row-even"><td rowspan="3"><ul class="simple">
+<li><p><strong>path</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Path</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>format</p></td>
+<td colspan="4"><p>path</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p>matches</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Matches</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>array</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><p>default</p></td>
+<td colspan="4"><p>*.jpg</p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>*.jpeg</p></td>
+</tr>
+<tr class="row-odd"><td colspan="4"><p>*.png</p></td>
+</tr>
+<tr class="row-even"><td><p>items</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-even"><td rowspan="13"><ul class="simple">
+<li><p>Generator_cnn_pathch4_844_48_3_nouplayer_server5</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>Generator_cnn_pathch4_844_48_3_nouplayer_server5</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>const</p></td>
+<td colspan="4"><p>Generator_cnn_pathch4_844_48_3_nouplayer_server5</p></td>
+</tr>
+<tr class="row-even"><td rowspan="6"><ul class="simple">
+<li><p>path</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Path</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>examples</p></td>
+<td colspan="4"><p>hf://RVI/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>~/.weights/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-odd"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="13"><ul class="simple">
+<li><p>Generator_transformer_pathch2</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>Generator_transformer_pathch2</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-even"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>const</p></td>
+<td colspan="4"><p>Generator_transformer_pathch2</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p>path</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Path</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>examples</p></td>
+<td colspan="4"><p>hf://RVI/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-odd"><td colspan="4"><p>~/.weights/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-even"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-even"><td rowspan="13"><ul class="simple">
+<li><p>Generator_transformer_pathch2_1_1</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>Generator_transformer_pathch2_1_1</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>const</p></td>
+<td colspan="4"><p>Generator_transformer_pathch2_1_1</p></td>
+</tr>
+<tr class="row-even"><td rowspan="6"><ul class="simple">
+<li><p>path</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Path</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>examples</p></td>
+<td colspan="4"><p>hf://RVI/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>~/.weights/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-odd"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="13"><ul class="simple">
+<li><p>Generator_transformer_pathch2_no_Unt</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>Generator_transformer_pathch2_no_Unt</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-even"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>const</p></td>
+<td colspan="4"><p>Generator_transformer_pathch2_no_Unt</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p>path</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Path</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>examples</p></td>
+<td colspan="4"><p>hf://RVI/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-odd"><td colspan="4"><p>~/.weights/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-even"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-even"><td rowspan="13"><ul class="simple">
+<li><p>Generator_transformer_pathch4_1_1</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>Generator_transformer_pathch4_1_1</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>const</p></td>
+<td colspan="4"><p>Generator_transformer_pathch4_1_1</p></td>
+</tr>
+<tr class="row-even"><td rowspan="6"><ul class="simple">
+<li><p>path</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Path</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>examples</p></td>
+<td colspan="4"><p>hf://RVI/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>~/.weights/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-odd"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="13"><ul class="simple">
+<li><p>Generator_transformer_pathch4_6_3_48_3</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>Generator_transformer_pathch4_6_3_48_3</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-even"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>const</p></td>
+<td colspan="4"><p>Generator_transformer_pathch4_6_3_48_3</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p>path</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Path</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>examples</p></td>
+<td colspan="4"><p>hf://RVI/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-odd"><td colspan="4"><p>~/.weights/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-even"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-even"><td rowspan="13"><ul class="simple">
+<li><p>Generator_transformer_pathch4_8421_48_3_nouplayer_server5</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>Generator_transformer_pathch4_8421_48_3_nouplayer_server5</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>const</p></td>
+<td colspan="4"><p>Generator_transformer_pathch4_8421_48_3_nouplayer_server5</p></td>
+</tr>
+<tr class="row-even"><td rowspan="6"><ul class="simple">
+<li><p>path</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Path</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>examples</p></td>
+<td colspan="4"><p>hf://RVI/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>~/.weights/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-odd"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="13"><ul class="simple">
+<li><p>Generator_transformer_pathch4_844_48_3</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>Generator_transformer_pathch4_844_48_3</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-even"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>const</p></td>
+<td colspan="4"><p>Generator_transformer_pathch4_844_48_3</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p>path</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Path</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>examples</p></td>
+<td colspan="4"><p>hf://RVI/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-odd"><td colspan="4"><p>~/.weights/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-even"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-even"><td rowspan="13"><ul class="simple">
+<li><p>Generator_transformer_pathch4_844_48_3_nouplayer_server5</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>Generator_transformer_pathch4_844_48_3_nouplayer_server5</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>const</p></td>
 <td colspan="4"><p>Generator_transformer_pathch4_844_48_3_nouplayer_server5</p></td>
+</tr>
+<tr class="row-even"><td rowspan="6"><ul class="simple">
+<li><p>path</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Path</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>examples</p></td>
+<td colspan="4"><p>hf://RVI/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>~/.weights/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-odd"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="13"><ul class="simple">
+<li><p>Generator_transformer_pathch4_844_48_3_nouplayer_server5_no_normalizaiton</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>Generator_transformer_pathch4_844_48_3_nouplayer_server5_no_normalizaiton</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-even"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>const</p></td>
+<td colspan="4"><p>Generator_transformer_pathch4_844_48_3_nouplayer_server5_no_normalizaiton</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><ul class="simple">
+<li><p>path</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Path</em></p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>examples</p></td>
+<td colspan="4"><p>hf://RVI/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-odd"><td colspan="4"><p>~/.weights/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-even"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-even"><td rowspan="13"><ul class="simple">
+<li><p>Generator_transformer_pathch4_844_48_3_server5</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>Generator_transformer_pathch4_844_48_3_server5</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-even"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>const</p></td>
+<td colspan="4"><p>Generator_transformer_pathch4_844_48_3_server5</p></td>
+</tr>
+<tr class="row-even"><td rowspan="6"><ul class="simple">
+<li><p>path</p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Path</em></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>examples</p></td>
+<td colspan="4"><p>hf://RVI/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-even"><td colspan="4"><p>~/.weights/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth</p></td>
+</tr>
+<tr class="row-odd"><td><p>default</p></td>
+<td colspan="4"><p>null</p></td>
+</tr>
+<tr class="row-even"><td rowspan="2"><p>anyOf</p></td>
+<td><p>type</p></td>
+<td colspan="3"><p><em>string</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="3"><p><em>null</em></p></td>
+</tr>
+<tr class="row-even"><td><p>additionalProperties</p></td>
+<td colspan="5"><p>False</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="13"><ul class="simple">
+<li><p>Generator_transformer_pathch4_8_3_48_3</p></li>
+</ul>
+</td>
+<td colspan="6"><p><em>Generator_transformer_pathch4_8_3_48_3</em></p></td>
+</tr>
+<tr class="row-even"><td><p>type</p></td>
+<td colspan="5"><p><em>object</em></p></td>
+</tr>
+<tr class="row-odd"><td colspan="6"><p>properties</p></td>
+</tr>
+<tr class="row-even"><td rowspan="3"><ul class="simple">
+<li><p><strong>name</strong></p></li>
+</ul>
+</td>
+<td colspan="5"><p><em>Name</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>type</p></td>
+<td colspan="4"><p><em>string</em></p></td>
+</tr>
+<tr class="row-even"><td><p>const</p></td>
+<td colspan="4"><p>Generator_transformer_pathch4_8_3_48_3</p></td>
 </tr>
 <tr class="row-odd"><td rowspan="6"><ul class="simple">
 <li><p>path</p></li>
@@ -3902,7 +4612,7 @@
 <td colspan="3"><p><em>string</em></p></td>
 </tr>
 <tr class="row-even"><td><p>enum</p></td>
-<td colspan="3"><p>hf://RVI/cvae.pth, hf://RVI/dwdn.pt, hf://RVI/unet-efficientnet-b0.pth, hf://RVI/unetvae.pth, hf://RVI/usrnet.pth, hf://RVI/vae.pth, hf://RVI/vdsr.pth, hf://CVD/cvd_swin.pth, hf://CVD/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth, hf://CVD/Generator_transformer_pathch4_1_1.pth, hf://CVD/Generator_transformer_pathch4_8_3_48_3.pth, hf://CVD/Generator_transformer_pathch4_844_48_3.pth, hf://tone_mapping/hdrnet_v0.pt</p></td>
+<td colspan="3"><p>hf://RVI/cvae.pth, hf://RVI/dwdn.pt, hf://RVI/unet-efficientnet-b0.pth, hf://RVI/unetvae.pth, hf://RVI/usrnet.pth, hf://RVI/vae.pth, hf://RVI/vdsr.pth, hf://CVD/cvd_swin.pth, hf://CVD/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth, hf://CVD/Generator_transformer_pathch4_1_1.pth, hf://CVD/Generator_transformer_pathch4_8_3_48_3.pth, hf://CVD/Generator_transformer_pathch4_844_48_3.pth, hf://CVD/cvd_swin_1channel.pth, hf://tone_mapping/hdrnet_v0.pt</p></td>
 </tr>
 <tr class="row-odd"><td><p>type</p></td>
 <td colspan="3"><p><em>string</em></p></td>
@@ -3953,7 +4663,7 @@
 <td colspan="3"><p><em>string</em></p></td>
 </tr>
 <tr class="row-odd"><td><p>enum</p></td>
-<td colspan="3"><p>hf://RVI/cvae.pth, hf://RVI/dwdn.pt, hf://RVI/unet-efficientnet-b0.pth, hf://RVI/unetvae.pth, hf://RVI/usrnet.pth, hf://RVI/vae.pth, hf://RVI/vdsr.pth, hf://CVD/cvd_swin.pth, hf://CVD/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth, hf://CVD/Generator_transformer_pathch4_1_1.pth, hf://CVD/Generator_transformer_pathch4_8_3_48_3.pth, hf://CVD/Generator_transformer_pathch4_844_48_3.pth, hf://tone_mapping/hdrnet_v0.pt</p></td>
+<td colspan="3"><p>hf://RVI/cvae.pth, hf://RVI/dwdn.pt, hf://RVI/unet-efficientnet-b0.pth, hf://RVI/unetvae.pth, hf://RVI/usrnet.pth, hf://RVI/vae.pth, hf://RVI/vdsr.pth, hf://CVD/cvd_swin.pth, hf://CVD/Generator_cnn_pathch4_844_48_3_nouplayer_server5.pth, hf://CVD/Generator_transformer_pathch4_1_1.pth, hf://CVD/Generator_transformer_pathch4_8_3_48_3.pth, hf://CVD/Generator_transformer_pathch4_844_48_3.pth, hf://CVD/cvd_swin_1channel.pth, hf://tone_mapping/hdrnet_v0.pt</p></td>
 </tr>
 <tr class="row-even"><td><p>type</p></td>
 <td colspan="3"><p><em>string</em></p></td>

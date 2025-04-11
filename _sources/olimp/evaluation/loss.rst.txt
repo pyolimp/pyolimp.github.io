@@ -15,12 +15,6 @@ chromaticity_difference
    :members:
 
 
-color_blindness_loss
---------------------
-
-.. automodule:: olimp.evaluation.loss.color_blindness_loss
-   :members:
-
 corr
 ----
 
@@ -91,4 +85,10 @@ lpips
 -----
 
 .. automodule:: olimp.evaluation.loss.lpips
+   :members:
+
+vae
+---
+
+.. automodule:: olimp.evaluation.loss.vae
    :members:
